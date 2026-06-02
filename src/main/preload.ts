@@ -297,6 +297,16 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('cowork:session:rename', options),
     getSession: (sessionId: string) =>
       ipcRenderer.invoke(CoworkIpcChannel.SessionGet, sessionId),
+    getSessionMeta: (sessionId: string) =>
+      ipcRenderer.invoke(CoworkIpcChannel.SessionGetMeta, sessionId),
+    getRecentMessages: (input: { sessionId: string; limit?: number }) =>
+      ipcRenderer.invoke(CoworkIpcChannel.SessionGetRecentMessages, input),
+    getMessagesAfter: (input: { sessionId: string; sequence: number }) =>
+      ipcRenderer.invoke(CoworkIpcChannel.SessionGetMessagesAfter, input),
+    getMessagesBefore: (input: { sessionId: string; sequence: number; limit?: number }) =>
+      ipcRenderer.invoke(CoworkIpcChannel.SessionGetMessagesBefore, input),
+    getSessionRuntimeSnapshot: (sessionId: string) =>
+      ipcRenderer.invoke(CoworkIpcChannel.SessionGetRuntimeSnapshot, sessionId),
     remoteManaged: (sessionId: string) =>
       ipcRenderer.invoke('cowork:session:remoteManaged', sessionId),
     listSessions: (agentId?: string) =>

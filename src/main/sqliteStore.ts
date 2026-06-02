@@ -38,6 +38,9 @@ export class SqliteStore {
     // (no data loss on OS crash; power-loss risk is the same as DELETE mode).
     db.pragma('journal_mode = WAL');
     db.pragma('synchronous = NORMAL');
+    db.pragma('foreign_keys = ON');
+    db.pragma('busy_timeout = 5000');
+    db.pragma('temp_store = MEMORY');
     db.pragma('cache_size = -8000'); // 8 MB; negative value = kibibytes
     db.pragma('wal_autocheckpoint = 1000'); // checkpoint every ~4 MB of WAL writes
 
@@ -91,6 +94,11 @@ export class SqliteStore {
 
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_cowork_messages_session_id ON cowork_messages(session_id);
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_session_sequence
+      ON cowork_messages(session_id, sequence);
     `);
 
     this.db.exec(`

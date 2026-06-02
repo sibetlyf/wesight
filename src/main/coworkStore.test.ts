@@ -71,7 +71,8 @@ function setupDb(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS cowork_config (
       key TEXT PRIMARY KEY,
-      value TEXT
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL
     );
   `);
 
@@ -206,4 +207,48 @@ test('no console.warn when all metadata is valid or null', () => {
   expect(warnSpy).not.toHaveBeenCalled();
 
   warnSpy.mockRestore();
+});
+
+test('reads session metadata and paged messages without loading the full session', () => {
+  const sid = 'sess-paged';
+  insertSession(sid);
+
+  for (let index = 1; index <= 5; index += 1) {
+    insertMessage(`m${index}`, sid, 'assistant', `message ${index}`, null, index);
+  }
+
+  const meta = store.getSessionMeta(sid);
+  expect(meta).not.toBeNull();
+  expect(meta!.id).toBe(sid);
+
+  expect(store.getRecentMessages(sid, 2).map((message) => message.id)).toEqual(['m4', 'm5']);
+  expect(store.getMessagesBefore(sid, 4, 2).map((message) => message.id)).toEqual(['m2', 'm3']);
+  expect(store.getMessagesAfter(sid, 3).map((message) => message.id)).toEqual(['m4', 'm5']);
+});
+
+test('addMessage assigns increasing sequences and stores config updates transactionally', () => {
+  const sid = 'sess-write';
+  insertSession(sid);
+
+  const first = store.addMessage(sid, { type: 'user', content: 'first' });
+  const second = store.addMessage(sid, { type: 'assistant', content: 'second' });
+
+  expect(first.sequence).toBe(1);
+  expect(second.sequence).toBe(2);
+  expect(store.getRecentMessages(sid, 10).map((message) => message.sequence)).toEqual([1, 2]);
+
+  store.setConfig({
+    workingDirectory: '/tmp/work',
+    memoryEnabled: false,
+    memoryUserMemoriesMaxItems: 4,
+  });
+
+  const rows = db
+    .prepare('SELECT key, value FROM cowork_config ORDER BY key')
+    .all() as Array<{ key: string; value: string }>;
+  expect(rows).toEqual([
+    { key: 'memoryEnabled', value: '0' },
+    { key: 'memoryUserMemoriesMaxItems', value: '4' },
+    { key: 'workingDirectory', value: '/tmp/work' },
+  ]);
 });

@@ -60,7 +60,7 @@ import { AgentTeamRunner } from './agentTeamRunner';
 import { APP_NAME } from './appConstants';
 import { getAutoLaunchEnabled, isAutoLaunched, setAutoLaunchEnabled } from './autoLaunchManager';
 import { CoworkFileActivityTracker } from './coworkFileActivityTracker';
-import { type CoworkMessage, type CoworkSession,CoworkStore } from './coworkStore';
+import { type CoworkMessage, type CoworkSessionMeta,CoworkStore } from './coworkStore';
 import { setLanguage, t } from './i18n';
 import { IMGatewayConfig,IMGatewayManager } from './im';
 import {
@@ -1152,7 +1152,7 @@ const getCoworkFileActivityTracker = (): CoworkFileActivityTracker => {
 
 const startCoworkFileActivityForSession = (sessionId: string): void => {
   try {
-    const session = getCoworkStore().getSession(sessionId);
+    const session = getCoworkStore().getSessionMeta(sessionId);
     if (!session?.cwd) return;
     getCoworkFileActivityTracker().startSession(sessionId, session.cwd);
   } catch {
@@ -1964,7 +1964,7 @@ const bindCoworkRuntimeForwarder = (): void => {
     startCoworkFileActivityForSession(sessionId);
     updateDesktopPetTaskSnapshot(sessionId, getDesktopPetStatusForMessage(message));
     try {
-      const session = getCoworkStore().getSession(sessionId);
+      const session = getCoworkStore().getSessionMeta(sessionId);
       if (session?.cwd) {
         getCoworkFileActivityTracker().handleToolMessage(sessionId, session.cwd, message);
       }
@@ -2786,7 +2786,7 @@ const getDesktopPetTaskActivityText = (status: DesktopPetTaskStatus): string => 
   }
 };
 
-const getDesktopPetTaskSource = (session: CoworkSession): DesktopPetTaskSnapshot['source'] => {
+const getDesktopPetTaskSource = (session: CoworkSessionMeta): DesktopPetTaskSnapshot['source'] => {
   if (/^\[[^\]]+\]\s/.test(session.title)) {
     return DesktopPetTaskSource.Im;
   }
@@ -2813,7 +2813,7 @@ const updateDesktopPetTaskSnapshot = (sessionId: string, status: DesktopPetTaskS
     return;
   }
 
-  const session = getCoworkStore().getSession(sessionId);
+  const session = getCoworkStore().getSessionMeta(sessionId);
   if (!session) {
     return;
   }
@@ -4278,15 +4278,19 @@ if (!gotTheLock) {
           runtimeSource: RuntimeCallSource.Chat,
         }).catch(error => {
           console.error('[AgentTeamRunner] team session failed:', error);
-          const existing = coworkStoreInstance.getSession(session.id);
+          const existing = coworkStoreInstance.getSessionMeta(session.id);
           if (existing?.status === 'error') return;
           const errorMessage = error instanceof Error ? error.message : String(error);
           updateDesktopPetTaskSnapshot(session.id, DesktopPetTaskStatus.Error);
           broadcastCoworkError(session.id, errorMessage);
         });
-        const sessionWithMessages = coworkStoreInstance.getSession(session.id) || {
+        const sessionMeta = coworkStoreInstance.getSessionMeta(session.id) || {
           ...session,
           status: 'running' as const,
+        };
+        const sessionWithMessages = {
+          ...sessionMeta,
+          messages: coworkStoreInstance.getRecentMessages(session.id, 120),
         };
         return { success: true, session: sessionWithMessages };
       }
@@ -4313,7 +4317,7 @@ if (!gotTheLock) {
         // The engine router already emits an 'error' event (handled at line ~990)
         // which sends cowork:stream:error to the renderer. Only send here if the
         // session hasn't been marked as error yet, to avoid duplicate messages.
-        const existing = coworkStoreInstance.getSession(session.id);
+        const existing = coworkStoreInstance.getSessionMeta(session.id);
         if (existing?.status === 'error') return;
         const errorMessage = error instanceof Error ? error.message : String(error);
         updateDesktopPetTaskSnapshot(session.id, DesktopPetTaskStatus.Error);
@@ -4326,9 +4330,13 @@ if (!gotTheLock) {
         );
       });
 
-      const sessionWithMessages = coworkStoreInstance.getSession(session.id) || {
+      const sessionMeta = coworkStoreInstance.getSessionMeta(session.id) || {
         ...session,
         status: 'running' as const,
+      };
+      const sessionWithMessages = {
+        ...sessionMeta,
+        messages: coworkStoreInstance.getRecentMessages(session.id, 120),
       };
       return { success: true, session: sessionWithMessages };
     } catch (error) {
@@ -4348,7 +4356,7 @@ if (!gotTheLock) {
   }) => {
     try {
       subscribeSenderToCoworkSession(event.sender, options.sessionId);
-      const existingSession = getCoworkStore().getSession(options.sessionId);
+      const existingSession = getCoworkStore().getSessionMeta(options.sessionId);
       const inferredEngine = existingSession?.teamId
         ? resolveCoworkAgentEngine()
         : resolveAgentRuntimeEngine(existingSession?.agentId || 'main');
@@ -4388,13 +4396,16 @@ if (!gotTheLock) {
           runtimeSource: RuntimeCallSource.Chat,
         }).catch(error => {
           console.error('[AgentTeamRunner] team continue failed:', error);
-          const existing = getCoworkStore().getSession(options.sessionId);
+          const existing = getCoworkStore().getSessionMeta(options.sessionId);
           if (existing?.status === 'error') return;
           const errorMessage = error instanceof Error ? error.message : String(error);
           updateDesktopPetTaskSnapshot(options.sessionId, DesktopPetTaskStatus.Error);
           broadcastCoworkError(options.sessionId, errorMessage);
         });
-        const session = getCoworkStore().getSession(options.sessionId);
+        const sessionMeta = getCoworkStore().getSessionMeta(options.sessionId);
+        const session = sessionMeta
+          ? { ...sessionMeta, messages: getCoworkStore().getRecentMessages(options.sessionId, 120) }
+          : null;
         return { success: true, session };
       }
       runtime.continueSession(options.sessionId, options.prompt, {
@@ -4412,7 +4423,7 @@ if (!gotTheLock) {
         // The engine router already emits an 'error' event (handled at line ~990)
         // which sends cowork:stream:error to the renderer. Only send here if the
         // session hasn't been marked as error yet, to avoid duplicate messages.
-        const existing = getCoworkStore().getSession(options.sessionId);
+        const existing = getCoworkStore().getSessionMeta(options.sessionId);
         if (existing?.status === 'error') return;
         const errorMessage = error instanceof Error ? error.message : String(error);
         updateDesktopPetTaskSnapshot(options.sessionId, DesktopPetTaskStatus.Error);
@@ -4425,7 +4436,10 @@ if (!gotTheLock) {
         );
       });
 
-      const session = getCoworkStore().getSession(options.sessionId);
+      const sessionMeta = getCoworkStore().getSessionMeta(options.sessionId);
+      const session = sessionMeta
+        ? { ...sessionMeta, messages: getCoworkStore().getRecentMessages(options.sessionId, 120) }
+        : null;
       return { success: true, session };
     } catch (error) {
       return {
@@ -4549,6 +4563,66 @@ if (!gotTheLock) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get session',
+      };
+    }
+  });
+
+  ipcMain.handle(CoworkIpcChannel.SessionGetMeta, async (_event, sessionId: string) => {
+    try {
+      const session = getCoworkStore().getSessionMeta(sessionId);
+      return { success: true, session };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get session metadata',
+      };
+    }
+  });
+
+  ipcMain.handle(CoworkIpcChannel.SessionGetRecentMessages, async (_event, input: { sessionId: string; limit?: number }) => {
+    try {
+      const messages = getCoworkStore().getRecentMessages(input.sessionId, input.limit);
+      return { success: true, messages };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get recent messages',
+      };
+    }
+  });
+
+  ipcMain.handle(CoworkIpcChannel.SessionGetMessagesAfter, async (_event, input: { sessionId: string; sequence: number }) => {
+    try {
+      const messages = getCoworkStore().getMessagesAfter(input.sessionId, input.sequence);
+      return { success: true, messages };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get messages after sequence',
+      };
+    }
+  });
+
+  ipcMain.handle(CoworkIpcChannel.SessionGetMessagesBefore, async (_event, input: { sessionId: string; sequence: number; limit?: number }) => {
+    try {
+      const messages = getCoworkStore().getMessagesBefore(input.sessionId, input.sequence, input.limit);
+      return { success: true, messages };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get messages before sequence',
+      };
+    }
+  });
+
+  ipcMain.handle(CoworkIpcChannel.SessionGetRuntimeSnapshot, async (_event, sessionId: string) => {
+    try {
+      const runtimeSnapshot = getCoworkStore().getSessionRuntimeSnapshot(sessionId);
+      return { success: true, runtimeSnapshot };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get session runtime snapshot',
       };
     }
   });

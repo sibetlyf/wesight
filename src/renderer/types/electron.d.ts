@@ -35,8 +35,7 @@ interface ApiStreamResponse {
   error?: string;
 }
 
-// Cowork types for IPC
-interface CoworkSession {
+interface CoworkSessionMeta {
   id: string;
   title: string;
   claudeSessionId: string | null;
@@ -52,9 +51,13 @@ interface CoworkSession {
   parentSessionId?: string | null;
   teamId?: string | null;
   runtimeSnapshot?: CoworkSessionRuntimeSnapshot | null;
-  messages: CoworkMessage[];
   createdAt: number;
   updatedAt: number;
+}
+
+// Cowork types for IPC
+interface CoworkSession extends CoworkSessionMeta {
+  messages: CoworkMessage[];
 }
 
 interface CoworkMessage {
@@ -62,6 +65,7 @@ interface CoworkMessage {
   type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'system';
   content: string;
   timestamp: number;
+  sequence?: number | null;
   metadata?: Record<string, unknown>;
 }
 
@@ -656,6 +660,11 @@ interface IElectronAPI {
     setSessionPinned: (options: { sessionId: string; pinned: boolean }) => Promise<{ success: boolean; error?: string }>;
     renameSession: (options: { sessionId: string; title: string }) => Promise<{ success: boolean; error?: string }>;
     getSession: (sessionId: string) => Promise<{ success: boolean; session?: CoworkSession; error?: string }>;
+    getSessionMeta: (sessionId: string) => Promise<{ success: boolean; session?: CoworkSessionMeta; error?: string }>;
+    getRecentMessages: (input: { sessionId: string; limit?: number }) => Promise<{ success: boolean; messages?: CoworkMessage[]; error?: string }>;
+    getMessagesAfter: (input: { sessionId: string; sequence: number }) => Promise<{ success: boolean; messages?: CoworkMessage[]; error?: string }>;
+    getMessagesBefore: (input: { sessionId: string; sequence: number; limit?: number }) => Promise<{ success: boolean; messages?: CoworkMessage[]; error?: string }>;
+    getSessionRuntimeSnapshot: (sessionId: string) => Promise<{ success: boolean; runtimeSnapshot?: CoworkSessionRuntimeSnapshot | null; error?: string }>;
     remoteManaged: (sessionId: string) => Promise<{ success: boolean; remoteManaged: boolean; error?: string }>;
     listSessions: (agentId?: string) => Promise<{ success: boolean; sessions?: CoworkSessionSummary[]; error?: string }>;
     exportResultImage: (options: {

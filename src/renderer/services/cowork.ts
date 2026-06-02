@@ -5,12 +5,14 @@ import { store } from '../store';
 import {
   addMessage,
   addSession,
+  appendMessages,
   clearCurrentSession,
   clearPendingPermissions,
   deleteSession as deleteSessionAction,
   deleteSessions as deleteSessionsAction,
   dequeuePendingPermission,
   enqueuePendingPermission,
+  prependMessages,
   setConfig,
   setCurrentSession,
   setRemoteManaged,
@@ -27,6 +29,7 @@ import type {
   CoworkConfigUpdate,
   CoworkContinueOptions,
   CoworkMemoryStats,
+  CoworkMessage,
   CoworkPermissionResult,
   CoworkSession,
   CoworkStartOptions,
@@ -658,6 +661,66 @@ class CoworkService {
     const requestId = ++this.latestLoadSessionRequestId;
     await this.subscribeToSession(sessionId);
 
+    if (!cowork.getSessionMeta || !cowork.getRecentMessages) {
+      return this.loadSessionLegacy(sessionId, requestId);
+    }
+
+    const [metaResult, messagesResult] = await Promise.all([
+      cowork.getSessionMeta(sessionId),
+      cowork.getRecentMessages({ sessionId, limit: 120 }),
+    ]);
+
+    if (metaResult.success && metaResult.session) {
+      let session: CoworkSession = {
+        ...metaResult.session,
+        messages: messagesResult.success ? messagesResult.messages || [] : [],
+      };
+
+      if (session.codexAppThreadId) {
+        const shouldRefreshCodexThread = session.messages.length === 0
+          || session.status === 'running';
+        if (shouldRefreshCodexThread) {
+          await this.openCodexAppTask(session.codexAppThreadId).catch((error) => {
+            console.debug('[CoworkService] Codex App thread read failed:', error);
+          });
+          const [refreshedMetaResult, refreshedMessagesResult] = await Promise.all([
+            cowork.getSessionMeta(sessionId),
+            cowork.getRecentMessages({ sessionId, limit: 120 }),
+          ]);
+          if (refreshedMetaResult.success && refreshedMetaResult.session) {
+            session = {
+              ...refreshedMetaResult.session,
+              messages: refreshedMessagesResult.success ? refreshedMessagesResult.messages || [] : [],
+            };
+          }
+        }
+      }
+
+      // Keep only the latest session load result to avoid stale async overwrites.
+      if (requestId !== this.latestLoadSessionRequestId) {
+        return session;
+      }
+      store.dispatch(setCurrentSession(session));
+      store.dispatch(setStreaming(session.status === 'running'));
+
+      const imResult = await cowork.remoteManaged(sessionId);
+      if (requestId === this.latestLoadSessionRequestId) {
+        store.dispatch(setRemoteManaged(imResult?.remoteManaged ?? false));
+      }
+
+      return session;
+    }
+
+    if (requestId === this.latestLoadSessionRequestId) {
+      await this.unsubscribeCurrentSession();
+    }
+    console.error('Failed to load session:', metaResult.error || messagesResult.error);
+    return null;
+  }
+
+  private async loadSessionLegacy(sessionId: string, requestId: number): Promise<CoworkSession | null> {
+    const cowork = window.electron?.cowork;
+    if (!cowork) return null;
     let result = await cowork.getSession(sessionId);
     if (result.success && result.session?.codexAppThreadId) {
       const shouldRefreshCodexThread = result.session.messages.length === 0
@@ -690,6 +753,28 @@ class CoworkService {
     }
     console.error('Failed to load session:', result.error);
     return null;
+  }
+
+  async loadOlderMessages(sessionId: string, beforeSequence: number, limit: number = 100): Promise<CoworkMessage[]> {
+    const cowork = window.electron?.cowork;
+    if (!cowork?.getMessagesBefore) return [];
+    const result = await cowork.getMessagesBefore({ sessionId, sequence: beforeSequence, limit });
+    if (result.success && result.messages?.length) {
+      store.dispatch(prependMessages({ sessionId, messages: result.messages }));
+      return result.messages;
+    }
+    return [];
+  }
+
+  async loadMessagesAfter(sessionId: string, sequence: number): Promise<CoworkMessage[]> {
+    const cowork = window.electron?.cowork;
+    if (!cowork?.getMessagesAfter) return [];
+    const result = await cowork.getMessagesAfter({ sessionId, sequence });
+    if (result.success && result.messages?.length) {
+      store.dispatch(appendMessages({ sessionId, messages: result.messages }));
+      return result.messages;
+    }
+    return [];
   }
 
   async respondToPermission(requestId: string, result: CoworkPermissionResult): Promise<boolean> {

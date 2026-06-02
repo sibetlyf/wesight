@@ -31,6 +31,11 @@ export type IpcMetricType =
 
 export type DbMetricOperation =
   | 'getSession'
+  | 'getSessionMeta'
+  | 'getSessionRuntimeSnapshot'
+  | 'getRecentMessages'
+  | 'getMessagesAfter'
+  | 'getMessagesBefore'
   | 'listSessions'
   | 'getConfig'
   | 'setConfig'

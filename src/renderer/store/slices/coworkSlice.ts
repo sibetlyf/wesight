@@ -301,6 +301,28 @@ const coworkSlice = createSlice({
       markSessionUnread(state, sessionId);
     },
 
+    prependMessages(state, action: PayloadAction<{ sessionId: string; messages: CoworkMessage[] }>) {
+      const { sessionId, messages } = action.payload;
+      if (messages.length === 0 || state.currentSession?.id !== sessionId) return;
+      const existingIds = new Set(state.currentSession.messages.map((message) => message.id));
+      const newMessages = messages.filter((message) => !existingIds.has(message.id));
+      if (newMessages.length === 0) return;
+      state.currentSession.messages = [...newMessages, ...state.currentSession.messages];
+    },
+
+    appendMessages(state, action: PayloadAction<{ sessionId: string; messages: CoworkMessage[] }>) {
+      const { sessionId, messages } = action.payload;
+      if (messages.length === 0 || state.currentSession?.id !== sessionId) return;
+      const existingIds = new Set(state.currentSession.messages.map((message) => message.id));
+      const newMessages = messages.filter((message) => !existingIds.has(message.id));
+      if (newMessages.length === 0) return;
+      state.currentSession.messages.push(...newMessages);
+      state.currentSession.updatedAt = Math.max(
+        state.currentSession.updatedAt,
+        ...newMessages.map((message) => message.timestamp),
+      );
+    },
+
     updateMessageContent(state, action: PayloadAction<StreamMessageUpdatePayload>) {
       const { sessionId, messageId, content, mode } = action.payload;
 
@@ -449,6 +471,8 @@ export const {
   deleteSession,
   deleteSessions,
   addMessage,
+  appendMessages,
+  prependMessages,
   updateMessageContent,
   setStreaming,
   setRemoteManaged,
