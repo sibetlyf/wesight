@@ -7422,6 +7422,7 @@ if (!gotTheLock) {
 
   let isCleanupFinished = false;
   let isCleanupInProgress = false;
+  const cleanupTimeoutMs = isDev ? 8000 : 15000;
 
   const runAppCleanup = async (): Promise<void> => {
     console.log('[Main] App is quitting, starting cleanup...');
@@ -7478,6 +7479,32 @@ if (!gotTheLock) {
     }
   };
 
+  const runAppCleanupWithTimeout = async (reason: string): Promise<void> => {
+    let cleanupTimeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        runAppCleanup(),
+        new Promise<void>((resolve) => {
+          cleanupTimeout = setTimeout(() => {
+            console.warn(`[Main] Cleanup timed out after ${cleanupTimeoutMs} ms ${reason}, forcing exit.`);
+            resolve();
+          }, cleanupTimeoutMs);
+          cleanupTimeout.unref?.();
+        }),
+      ]);
+    } finally {
+      if (cleanupTimeout) {
+        clearTimeout(cleanupTimeout);
+      }
+    }
+  };
+
+  const finishAppExit = (exitCode: number) => {
+    isCleanupFinished = true;
+    isCleanupInProgress = false;
+    app.exit(exitCode);
+  };
+
   app.on('before-quit', (e) => {
     if (isCleanupFinished) return;
 
@@ -7489,37 +7516,39 @@ if (!gotTheLock) {
     isCleanupInProgress = true;
     isQuitting = true;
 
-    void runAppCleanup()
+    void runAppCleanupWithTimeout('before app quit')
       .catch((error) => {
         console.error('[Main] Cleanup error:', error);
       })
       .finally(() => {
-        isCleanupFinished = true;
-        isCleanupInProgress = false;
-        app.exit(0);
+        finishAppExit(0);
       });
   });
 
   const handleTerminationSignal = (signal: NodeJS.Signals) => {
-    if (isCleanupFinished || isCleanupInProgress) {
+    if (isCleanupFinished) {
+      app.exit(0);
+      return;
+    }
+    if (isCleanupInProgress) {
+      console.warn(`[Main] Received ${signal} while cleanup is still running, forcing exit.`);
+      finishAppExit(signal === 'SIGINT' ? 130 : 143);
       return;
     }
     console.log(`[Main] Received ${signal}, running cleanup before exit...`);
     isCleanupInProgress = true;
     isQuitting = true;
-    void runAppCleanup()
+    void runAppCleanupWithTimeout(`during ${signal}`)
       .catch((error) => {
         console.error(`[Main] Cleanup error during ${signal}:`, error);
       })
       .finally(() => {
-        isCleanupFinished = true;
-        isCleanupInProgress = false;
-        app.exit(0);
+        finishAppExit(signal === 'SIGINT' ? 130 : 143);
       });
   };
 
-  process.once('SIGINT', () => handleTerminationSignal('SIGINT'));
-  process.once('SIGTERM', () => handleTerminationSignal('SIGTERM'));
+  process.on('SIGINT', () => handleTerminationSignal('SIGINT'));
+  process.on('SIGTERM', () => handleTerminationSignal('SIGTERM'));
 
   type StartupServiceStatus = 'pending' | 'running' | 'ready' | 'error' | 'degraded';
   type StartupServiceName =
@@ -8075,7 +8104,7 @@ if (!gotTheLock) {
 
   // 当所有窗口关闭时退出应用
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
+    if (process.platform !== 'darwin' || isDev) {
       app.quit();
     }
   });
