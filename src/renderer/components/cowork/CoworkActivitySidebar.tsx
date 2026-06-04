@@ -36,6 +36,13 @@ import { CoworkActivitySidebarMode } from './activitySidebarConstants';
 import DiffView from './DiffView';
 import { getLiveCodeInitialLineLimit, shouldAutoFollowLiveCodeScroll } from './liveCodePreviewUtils';
 
+export interface PreviewFile {
+  filePath: string;
+  content: string | null;
+  status: 'loading' | 'loaded' | 'error';
+  error?: string;
+}
+
 interface CoworkActivitySidebarProps {
   snapshot: CoworkActivitySnapshot;
   sessionStatus: CoworkSessionStatus;
@@ -53,6 +60,9 @@ interface CoworkActivitySidebarProps {
   onSelectLiveFile: (filePath: string) => void;
   onResizeStart?: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onClose: () => void;
+  previewFile?: PreviewFile | null;
+  onClosePreviewFile?: () => void;
+  onOpenFile?: (filePath: string) => void;
 }
 
 const statusLabelKey: Record<ActivityItemStatus, string> = {
@@ -162,6 +172,20 @@ const getRuntimeElapsedMs = (call: RuntimeCallRecord): number | null => {
 const basename = (filePath: string): string => {
   const clean = filePath.replace(/[?#].*$/, '').replace(/\/+$/, '');
   return decodeURIComponent(clean.split('/').pop() || clean || filePath);
+};
+
+const encodeLocalFileSrc = (filePath: string): string => {
+  const raw = filePath.trim();
+  const normalized = raw.replace(/\\/g, '/');
+  const fileUrl = /^file:\/\//i.test(normalized)
+    ? normalized
+    : normalized.startsWith('/')
+      ? `file://${normalized}`
+      : `file:///${normalized}`;
+  return encodeURI(fileUrl)
+    .replace(/\(/g, '%28')
+    .replace(/\)/g, '%29')
+    .replace(/^file:\/\//i, 'localfile://');
 };
 
 const Section: React.FC<{
@@ -661,7 +685,48 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
   onSelectLiveFile,
   onResizeStart,
   onClose,
+  previewFile,
+  onClosePreviewFile,
+  onOpenFile,
 }) => {
+  const [workspaceFiles, setWorkspaceFiles] = useState<Array<{ name: string; isDirectory: boolean; path: string; relativePath: string }> | null>(null);
+  const [workspaceLoading, setWorkspaceLoading] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [previewTab, setPreviewTab] = useState<'source' | 'render'>('source');
+
+  useEffect(() => {
+    if (previewFile) {
+      const fileName = basename(previewFile.filePath);
+      const isHtml = fileName.endsWith('.html') || fileName.endsWith('.htm') || fileName.endsWith('.svg');
+      setPreviewTab(isHtml ? 'render' : 'source');
+    }
+  }, [previewFile?.filePath]);
+
+  const loadWorkspaceFiles = React.useCallback(async () => {
+    if (!cwd) {
+      setWorkspaceFiles(null);
+      return;
+    }
+    setWorkspaceLoading(true);
+    setWorkspaceError(null);
+    try {
+      const result = await window.electron.dialog.readDirectory(cwd);
+      if (result.success && result.files) {
+        setWorkspaceFiles(result.files);
+      } else {
+        setWorkspaceError(result.error || 'Failed to load directory');
+      }
+    } catch (err) {
+      setWorkspaceError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setWorkspaceLoading(false);
+    }
+  }, [cwd]);
+
+  useEffect(() => {
+    void loadWorkspaceFiles();
+  }, [cwd, loadWorkspaceFiles]);
+
   const selectedFileChange = useMemo(() => {
     if (selectedFileChangeId) {
       const selected = snapshot.fileChanges.find((change) => change.id === selectedFileChangeId);
@@ -800,6 +865,54 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
       </Section>
 
       <Section
+        title="工作空间文件 (Workspace Files)"
+        icon={<FolderOpenIcon className="h-4 w-4" />}
+        count={workspaceFiles ? workspaceFiles.filter(f => !f.isDirectory).length : undefined}
+      >
+        {workspaceLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <span className="ml-2 text-xs text-muted">读取中...</span>
+          </div>
+        ) : workspaceError ? (
+          <div className="rounded bg-red-500/5 p-2 text-[11px] text-red-600 dark:text-red-300">
+            {workspaceError}
+          </div>
+        ) : !workspaceFiles || workspaceFiles.length === 0 ? (
+          <EmptyText>工作空间没有文件</EmptyText>
+        ) : (
+          <div className="max-h-60 overflow-y-auto space-y-0.5 rounded-lg border border-border bg-[#fafafa] dark:bg-black/10 p-1.5 font-mono text-[11px]">
+            {workspaceFiles.map((file) => {
+              const depth = file.relativePath.split('/').length - 1;
+              return (
+                <div
+                  key={file.path}
+                  className="flex items-center gap-1.5 py-1 px-1.5 hover:bg-surface-raised rounded cursor-pointer transition-colors"
+                  style={{ paddingLeft: `${depth * 10 + 6}px` }}
+                  onClick={() => {
+                    if (!file.isDirectory && onOpenFile) {
+                      onOpenFile(file.path);
+                    } else if (file.isDirectory) {
+                      void window.electron.shell.openPath(file.path);
+                    }
+                  }}
+                >
+                  {file.isDirectory ? (
+                    <FolderOpenIcon className="h-3.5 w-3.5 shrink-0 text-amber-500/80" />
+                  ) : (
+                    <DocumentIcon className="h-3.5 w-3.5 shrink-0 text-secondary" />
+                  )}
+                  <span className={`truncate ${file.isDirectory ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
+                    {file.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Section>
+
+      <Section
         title={i18nService.t('coworkActivityArtifacts')}
         icon={<PhotoIcon className="h-4 w-4" />}
         count={snapshot.artifacts.length}
@@ -866,6 +979,142 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
       <RuntimeMonitorCard call={runtimeCall} engineLabel={engineLabel} />
     </div>
   );
+
+  const renderFilePreview = () => {
+    if (!previewFile) {
+      return <EmptyText>{i18nService.t('coworkActivityNoPreview')}</EmptyText>;
+    }
+
+    if (previewFile.status === 'loading') {
+      return (
+        <div className="flex h-full items-center justify-center py-8">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="ml-2 text-xs text-muted">Loading file content...</span>
+        </div>
+      );
+    }
+
+    if (previewFile.status === 'error') {
+      return (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4 text-xs text-red-600 dark:text-red-300">
+          <div className="font-semibold">Failed to load file</div>
+          <div className="mt-1">{previewFile.error}</div>
+        </div>
+      );
+    }
+
+    const { filePath, content } = previewFile;
+    const fileName = basename(filePath);
+    const isHtml = fileName.endsWith('.html') || fileName.endsWith('.htm') || fileName.endsWith('.svg');
+
+    const localFileUrl = isHtml ? encodeLocalFileSrc(filePath) : '';
+    const lines = content ? content.split('\n') : [];
+
+    const handleOpenPath = async () => {
+      await window.electron.shell.openPath(filePath);
+    };
+
+    const handleRevealPath = async () => {
+      await window.electron.shell.showItemInFolder(filePath);
+    };
+
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
+        <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-[#e5e7eb] bg-white px-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <DocumentIcon className="h-4 w-4 shrink-0 text-[#6b7280]" />
+              <span className="truncate text-xs font-semibold text-[#111827]">
+                {fileName}
+              </span>
+            </div>
+            <div className="mt-0.5 truncate font-mono text-[10px] text-[#9ca3af]" title={filePath}>
+              {filePath}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleOpenPath}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-surface-raised text-[#4b5563] transition-colors hover:bg-primary-muted hover:text-primary"
+              title={i18nService.t('coworkActivityOpenFile')}
+            >
+              <DocumentIcon className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleRevealPath}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-surface-raised text-[#4b5563] transition-colors hover:bg-primary-muted hover:text-primary"
+              title={i18nService.t('coworkActivityRevealFile')}
+            >
+              <FolderOpenIcon className="h-3.5 w-3.5" />
+            </button>
+            {onClosePreviewFile && (
+              <button
+                type="button"
+                onClick={onClosePreviewFile}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-surface-raised text-[#4b5563] transition-colors hover:bg-red-100 hover:text-red-600"
+                title="Close Preview"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isHtml && (
+          <div className="flex border-b border-[#e5e7eb] bg-[#f9fafb] p-1">
+            <button
+              type="button"
+              onClick={() => setPreviewTab('render')}
+              className={`flex-1 rounded-md py-1 text-center text-xs font-medium transition-colors ${
+                previewTab === 'render'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-[#4b5563] hover:bg-surface-raised'
+              }`}
+            >
+              实时渲染 (Render)
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewTab('source')}
+              className={`flex-1 rounded-md py-1 text-center text-xs font-medium transition-colors ${
+                previewTab === 'source'
+                  ? 'bg-white text-primary shadow-sm'
+                  : 'text-[#4b5563] hover:bg-surface-raised'
+              }`}
+            >
+              文件源码 (Source)
+            </button>
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          {isHtml && previewTab === 'render' ? (
+            <iframe
+              src={localFileUrl}
+              className="h-full w-full border-0 bg-white"
+              sandbox="allow-scripts"
+            />
+          ) : (
+            <div className="h-full overflow-auto bg-white">
+              <pre className="m-0 min-w-max py-4 text-[12px] leading-[20px] text-[#24292f]">
+                {lines.map((line, index) => (
+                  <div
+                    key={`${filePath}-${index}`}
+                    className="grid grid-cols-[4.25rem_1fr] px-2"
+                  >
+                    <span className="select-none pr-4 text-right font-mono text-[#9ca3af]">{index + 1}</span>
+                    <code className="whitespace-pre pr-6 font-mono">{line || ' '}</code>
+                  </div>
+                ))}
+              </pre>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const renderLiveCode = () => (
     <div className={`flex min-h-0 flex-1 ${overlay ? 'flex-col' : 'flex-row'}`}>
@@ -1041,7 +1290,7 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
       </div>
 
       <div className="shrink-0 border-b border-border px-3 py-2">
-        <div className="grid grid-cols-4 rounded-xl bg-background p-1">
+        <div className={`grid ${previewFile ? 'grid-cols-5' : 'grid-cols-4'} rounded-xl bg-background p-1`}>
           <ModeButton
             active={mode === CoworkActivitySidebarMode.Overview}
             icon={<QueueListIcon className="h-3.5 w-3.5" />}
@@ -1066,6 +1315,14 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
             label={i18nService.t('coworkActivityCodeChanges')}
             onClick={() => onModeChange(CoworkActivitySidebarMode.CodeDiff)}
           />
+          {previewFile && (
+            <ModeButton
+              active={mode === CoworkActivitySidebarMode.FilePreview}
+              icon={<DocumentIcon className="h-3.5 w-3.5" />}
+              label="文件预览"
+              onClick={() => onModeChange(CoworkActivitySidebarMode.FilePreview)}
+            />
+          )}
         </div>
       </div>
 
@@ -1075,7 +1332,9 @@ const CoworkActivitySidebar: React.FC<CoworkActivitySidebarProps> = ({
           ? renderCodeDiff()
           : isRuntimeMonitorMode
             ? renderRuntimeMonitor()
-            : renderOverview()}
+            : mode === CoworkActivitySidebarMode.FilePreview
+              ? renderFilePreview()
+              : renderOverview()}
     </aside>
   );
 };

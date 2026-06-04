@@ -3,7 +3,6 @@ name: stock-announcements
 description: >-
   获取A股上市公司公告信息（真实数据）。基于AkShare从东方财富网获取当日全部公告，支持按股票代码筛选、关键词过滤。
   适用于监控重大事件、业绩快报、股东变动、重组公告等投资决策关键信息。数据源：东方财富网（稳定可靠）。
-official: true
 ---
 
 # Stock Announcement Fetcher

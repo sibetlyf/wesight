@@ -3,7 +3,6 @@ name: article-writer
 description: |
   Multi-style article creation skill. Supports 5 writing styles (deep analysis, practical guide, story-driven, opinion, news brief),
   including complete workflow: material collection → outline → content → formatting. Activated when users mention "write article", "write post", "create", or "draft".
-official: true
 ---
 
 # Multi-Style Article Creation

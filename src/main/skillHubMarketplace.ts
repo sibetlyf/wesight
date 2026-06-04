@@ -1,3 +1,5 @@
+import { net } from 'electron';
+
 import type { SkillMarketplaceCategory, SkillMarketplaceSort } from '../shared/skills/constants';
 import { SkillMarketplaceCategory as MarketplaceCategory, SkillMarketplaceSourceType } from '../shared/skills/constants';
 import type { SqliteStore } from './sqliteStore';
@@ -221,7 +223,7 @@ const fetchJsonWithTimeout = async (url: string, init?: RequestInit): Promise<un
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       ...init,
       headers: {
         Accept: 'application/json',

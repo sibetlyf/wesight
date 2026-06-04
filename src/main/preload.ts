@@ -333,7 +333,7 @@ contextBridge.exposeInMainWorld('electron', {
     setConfig: (config: {
       workingDirectory?: string;
       executionMode?: 'auto' | 'local' | 'sandbox';
-      agentEngine?: 'openclaw' | 'hermes' | 'yd_cowork' | 'claude_code' | 'codex' | 'codex_app' | 'opencode' | 'grok_build' | 'qwen_code' | 'deepseek_tui';
+      agentEngine?: 'openclaw' | 'hermes' | 'yd_cowork' | 'claude_code' | 'codex' | 'codex_app' | 'opencode' | 'grok_build' | 'qwen_code' | 'deepseek_tui' | 'claw_runtime';
       openclawConfigSource?: 'wesight_model' | 'local_cli';
       claudeCodeConfigSource?: 'wesight_model' | 'local_cli';
       codexConfigSource?: 'wesight_model' | 'local_cli';
@@ -518,6 +518,11 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.on(CoworkIpcChannel.StreamError, handler);
       return () => ipcRenderer.removeListener(CoworkIpcChannel.StreamError, handler);
     },
+    onStreamRuntimeEvent: (callback: (data: { sessionId: string; event: any }) => void) => {
+      const handler = (_event: any, data: { sessionId: string; event: any }) => callback(data);
+      ipcRenderer.on(CoworkIpcChannel.StreamRuntimeEvent, handler);
+      return () => ipcRenderer.removeListener(CoworkIpcChannel.StreamRuntimeEvent, handler);
+    },
     onSessionsChanged: (callback: () => void) => {
       const handler = () => callback();
       ipcRenderer.on('cowork:sessions:changed', handler);
@@ -534,6 +539,10 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.invoke('dialog:saveInlineFile', options),
     readFileAsDataUrl: (filePath: string) =>
       ipcRenderer.invoke('dialog:readFileAsDataUrl', filePath),
+    readFileText: (filePath: string) =>
+      ipcRenderer.invoke('dialog:readFileText', filePath),
+    readDirectory: (dirPath: string) =>
+      ipcRenderer.invoke('dialog:readDirectory', dirPath),
     saveLocalImageToDirectory: (options: { sourcePath: string; fileName?: string }) =>
       ipcRenderer.invoke(DialogIpcChannel.SaveLocalImageToDirectory, options),
   },

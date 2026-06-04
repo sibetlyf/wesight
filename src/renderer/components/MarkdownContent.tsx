@@ -1,20 +1,22 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
-// @ts-ignore
-import remarkGfm from 'remark-gfm';
-// @ts-ignore
-import remarkMath from 'remark-math';
-// @ts-ignore
-import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import 'katex/contrib/mhchem';
+
+import { CheckIcon, ClipboardDocumentIcon, DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
+import React, { useCallback, useEffect, useMemo,useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 // @ts-ignore
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 // @ts-ignore
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 // @ts-ignore
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { ClipboardDocumentIcon, CheckIcon, DocumentIcon, FolderIcon } from '@heroicons/react/24/outline';
+// @ts-ignore
+import rehypeKatex from 'rehype-katex';
+// @ts-ignore
+import remarkGfm from 'remark-gfm';
+// @ts-ignore
+import remarkMath from 'remark-math';
+
 import { i18nService } from '../services/i18n';
 
 const CODE_BLOCK_LINE_LIMIT = 200;
@@ -424,6 +426,7 @@ const findFallbackPathFromContext = (
 const createMarkdownComponents = (
   resolveLocalFilePath?: (href: string, text: string) => string | null,
   showRevealInFolderAction = false,
+  onLocalLinkClick?: (filePath: string) => void,
 ) => ({
   p: ({ node, className, children, ...props }: any) => (
     <p className="my-1 first:mt-0 last:mb-0 leading-6 text-foreground" {...props}>
@@ -536,6 +539,10 @@ const createMarkdownComponents = (
       const handleClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
         e.preventDefault();
         const anchor = e.currentTarget;
+        if (onLocalLinkClick) {
+          onLocalLinkClick(filePath);
+          return;
+        }
         try {
           const result = await window.electron.shell.openPath(filePath);
           if (result?.success) {
@@ -674,6 +681,7 @@ interface MarkdownContentProps {
   className?: string;
   resolveLocalFilePath?: (href: string, text: string) => string | null;
   showRevealInFolderAction?: boolean;
+  onLocalLinkClick?: (filePath: string) => void;
 }
 
 const MarkdownContent: React.FC<MarkdownContentProps> = ({
@@ -681,10 +689,11 @@ const MarkdownContent: React.FC<MarkdownContentProps> = ({
   className = '',
   resolveLocalFilePath,
   showRevealInFolderAction = false,
+  onLocalLinkClick,
 }) => {
   const components = useMemo(
-    () => createMarkdownComponents(resolveLocalFilePath, showRevealInFolderAction),
-    [resolveLocalFilePath, showRevealInFolderAction]
+    () => createMarkdownComponents(resolveLocalFilePath, showRevealInFolderAction, onLocalLinkClick),
+    [resolveLocalFilePath, showRevealInFolderAction, onLocalLinkClick]
   );
   const normalizedContent = useMemo(() => normalizeDisplayMath(encodeFileUrlsInMarkdown(content)), [content]);
   return (

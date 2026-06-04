@@ -1,5 +1,5 @@
 import { execSync, spawnSync } from 'child_process';
-import { app } from 'electron';
+import { app, net } from 'electron';
 import { chmodSync, existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { delimiter, dirname, join } from 'path';
 
@@ -14,6 +14,7 @@ import {
   extractTextFromAnthropicResponse,
   extractTextFromGeminiResponse,
   extractTextFromOpenAIChatCompletionResponse,
+  parseLlmResponsePayload,
 } from './coworkModelApi';
 import type { OpenAICompatProxyTarget } from './coworkOpenAICompatProxy';
 import { appendPythonRuntimeToEnv } from './pythonRuntime';
@@ -223,7 +224,7 @@ function readWindowsRegistryPathValue(registryKey: string): string {
  * to get the most up-to-date values, similar to how `resolveUserShellPath()` works
  * for macOS/Linux.
  */
-function resolveWindowsRegistryPath(): string | null {
+export function resolveWindowsRegistryPath(): string | null {
   if (cachedWindowsRegistryPath !== undefined) return cachedWindowsRegistryPath;
 
   if (process.platform !== 'win32') {
@@ -1465,7 +1466,7 @@ export async function getEnhancedEnvWithTmpdir(
 
 const SESSION_TITLE_FALLBACK = 'New Session';
 const SESSION_TITLE_MAX_CHARS = 50;
-const SESSION_TITLE_TIMEOUT_MS = 15000;
+const SESSION_TITLE_TIMEOUT_MS = 30000;
 const COWORK_MODEL_PROBE_TIMEOUT_MS = 20000;
 
 type SessionTitleApiConfig =
@@ -1606,7 +1607,7 @@ export async function probeCoworkModelReadiness(
   const isOpenAICompat = config.protocol === CoworkModelProtocol.OpenAICompat;
 
   try {
-    const response = await fetch(
+    const response = await net.fetch(
       isGemini
         ? buildGeminiGenerateContentUrl(config.baseURL, config.model)
         : isOpenAICompat
@@ -1669,7 +1670,20 @@ export async function probeCoworkModelReadiness(
       };
     }
 
-    const payload = await response.json().catch((): null => null);
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text().catch((): string => '');
+    let payload: any = null;
+    try {
+      const protocol = isGemini
+        ? CoworkModelProtocol.GeminiNative
+        : isOpenAICompat
+          ? CoworkModelProtocol.OpenAICompat
+          : CoworkModelProtocol.Anthropic;
+      payload = parseLlmResponsePayload(responseText, contentType, protocol);
+    } catch {
+      // Ignore parse errors, payload will be null
+    }
+
     const text = isGemini
       ? extractTextFromGeminiResponse(payload)
       : isOpenAICompat
@@ -1728,7 +1742,7 @@ export async function generateSessionTitle(userIntent: string | null): Promise<s
     const prompt = `Return one plain-text title in the same language, max ${SESSION_TITLE_MAX_CHARS} chars: ${normalizedInput}`;
     console.log(`[cowork-title] Generating title: protocol=${config.protocol}, baseURL=${config.baseURL}, requestUrl=${url}, model=${config.model}`);
 
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: config.protocol === CoworkModelProtocol.GeminiNative
         ? {
@@ -1783,7 +1797,9 @@ export async function generateSessionTitle(userIntent: string | null): Promise<s
       return fallbackTitle;
     }
 
-    const payload = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    const responseText = await response.text();
+    const payload = parseLlmResponsePayload(responseText, contentType, config.protocol);
     console.log(`[cowork-title] Title response payload:`, JSON.stringify(payload).slice(0, 500));
     const llmTitle = config.protocol === CoworkModelProtocol.GeminiNative
       ? extractTextFromGeminiResponse(payload)

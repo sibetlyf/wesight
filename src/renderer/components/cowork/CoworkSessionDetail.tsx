@@ -58,6 +58,7 @@ import {
   parseStoredActivitySidebarWidth,
 } from './activitySidebarResize';
 import CoworkActivitySidebar from './CoworkActivitySidebar';
+import { CoworkAgentHierarchyPanel } from './CoworkAgentHierarchyPanel';
 import CoworkPromptInput, { type CoworkPromptInputRef, type CoworkSlashCommandHandler } from './CoworkPromptInput';
 import CoworkStudioView from './CoworkStudioView';
 import DiffView, { extractDiffFromToolInput } from './DiffView';
@@ -1090,7 +1091,8 @@ export const UserMessageItem: React.FC<{
   message: CoworkMessage;
   skills: Skill[];
   onReEdit?: (message: CoworkMessage) => void;
-}> = React.memo(({ message, skills, onReEdit }) => {
+  onLocalLinkClick?: (filePath: string) => void;
+}> = React.memo(({ message, skills, onReEdit, onLocalLinkClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
@@ -1118,6 +1120,7 @@ export const UserMessageItem: React.FC<{
                   <MarkdownContent
                     content={message.content}
                     className="max-w-none whitespace-pre-wrap break-words"
+                    onLocalLinkClick={onLocalLinkClick}
                   />
                 )}
                 {imageAttachments.length > 0 && (
@@ -1195,11 +1198,13 @@ const AssistantMessageItem: React.FC<{
   resolveLocalFilePath?: (href: string, text: string) => string | null;
   mapDisplayText?: (value: string) => string;
   showCopyButton?: boolean;
+  onLocalLinkClick?: (filePath: string) => void;
 }> = ({
   message,
   resolveLocalFilePath,
   mapDisplayText,
   showCopyButton = false,
+  onLocalLinkClick,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [expandedImage, setExpandedImage] = useState<ExpandedGeneratedImage | null>(null);
@@ -1266,6 +1271,7 @@ const AssistantMessageItem: React.FC<{
           className="prose dark:prose-invert max-w-none"
           resolveLocalFilePath={resolveLocalFilePath}
           showRevealInFolderAction
+          onLocalLinkClick={onLocalLinkClick}
         />
         {generatedImages.length > 0 && (
           <div className={`${displayContent.trim() ? 'mt-3' : ''} grid gap-3 sm:grid-cols-2`}>
@@ -1478,7 +1484,8 @@ const TeamNoticeCard: React.FC<{
 const TeamTurnCard: React.FC<{
   message: CoworkMessage;
   mapDisplayText?: (value: string) => string;
-}> = ({ message, mapDisplayText }) => {
+  onLocalLinkClick?: (filePath: string) => void;
+}> = ({ message, mapDisplayText, onLocalLinkClick }) => {
   const [expanded, setExpanded] = useState(false);
   const metadata = message.metadata;
   const memberName = getTeamMetadataString(metadata, 'memberName') || i18nService.t('agentTeamMember');
@@ -1532,6 +1539,7 @@ const TeamTurnCard: React.FC<{
             <MarkdownContent
               content={output}
               className="prose dark:prose-invert max-w-none text-sm"
+              onLocalLinkClick={onLocalLinkClick}
             />
           ) : (
             <div className="text-xs text-muted">
@@ -1551,6 +1559,7 @@ export const AssistantTurnBlock: React.FC<{
   showTypingIndicator?: boolean;
   showCopyButtons?: boolean;
   onOpenFileChange?: (fileChangeId: string) => void;
+  onLocalLinkClick?: (filePath: string) => void;
 }> = ({
   turn,
   resolveLocalFilePath,
@@ -1558,6 +1567,7 @@ export const AssistantTurnBlock: React.FC<{
   showTypingIndicator = false,
   showCopyButtons = true,
   onOpenFileChange,
+  onLocalLinkClick,
 }) => {
   const visibleAssistantItems = getVisibleAssistantItems(turn.assistantItems);
 
@@ -1650,6 +1660,7 @@ export const AssistantTurnBlock: React.FC<{
                       key={item.message.id}
                       message={item.message}
                       mapDisplayText={mapDisplayText}
+                      onLocalLinkClick={onLocalLinkClick}
                     />
                   );
                 }
@@ -1683,6 +1694,7 @@ export const AssistantTurnBlock: React.FC<{
                     resolveLocalFilePath={resolveLocalFilePath}
                     mapDisplayText={mapDisplayText}
                     showCopyButton={showCopyButtons && !hasToolGroupAfter}
+                    onLocalLinkClick={onLocalLinkClick}
                   />
                 );
               }
@@ -1751,6 +1763,9 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
   const liveFileActivities = useSelector((state: RootState) => (
     currentSessionId ? state.cowork.liveFileActivitiesBySession[currentSessionId] ?? [] : []
   ));
+  const runtimeState = useSelector((state: RootState) => (
+    currentSessionId ? state.cowork.runtimeStates[currentSessionId] : null
+  ));
   const currentSessionStatus = currentSession?.status;
   const isSessionRunning = isStreaming || currentSessionStatus === 'running';
   const currentSessionTitle = currentSession?.title;
@@ -1791,12 +1806,18 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [showExportOptions, setShowExportOptions] = useState(false);
-  const [sessionViewMode, setSessionViewMode] = useState<CoworkSessionViewModeType>(CoworkSessionViewMode.Chat);
+  const [sessionViewMode, setSessionViewMode] = useState<CoworkSessionViewModeType | 'execution'>(CoworkSessionViewMode.Chat);
   const [isActivitySidebarOpen, setIsActivitySidebarOpen] = useState(false);
   const [activitySidebarMode, setActivitySidebarMode] = useState<CoworkActivitySidebarModeType>(CoworkActivitySidebarMode.Overview);
   const [selectedActivityFileChangeId, setSelectedActivityFileChangeId] = useState<string | null>(null);
   const [selectedLiveFilePath, setSelectedLiveFilePath] = useState<string | null>(null);
   const [activitySidebarOpenSource, setActivitySidebarOpenSource] = useState<ActivitySidebarOpenSourceType | null>(null);
+  const [previewFile, setPreviewFile] = useState<{
+    filePath: string;
+    content: string | null;
+    status: 'loading' | 'loaded' | 'error';
+    error?: string;
+  } | null>(null);
   const [dismissedActivityTurnId, setDismissedActivityTurnId] = useState<string | null>(null);
   const [latestRuntimeCall, setLatestRuntimeCall] = useState<RuntimeCallRecord | null>(null);
   const [activitySidebarWidth, setActivitySidebarWidth] = useState(() => (
@@ -2797,6 +2818,48 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
     setIsActivitySidebarOpen(true);
   }, []);
 
+  const handleLocalLinkClick = useCallback(async (filePath: string) => {
+    setActivitySidebarMode(CoworkActivitySidebarMode.FilePreview);
+    setIsActivitySidebarOpen(true);
+    setActivitySidebarOpenSource(ActivitySidebarOpenSource.FileClick);
+    
+    setPreviewFile({
+      filePath,
+      content: null,
+      status: 'loading'
+    });
+
+    try {
+      const result = await window.electron.dialog.readFileText(filePath);
+      if (result.success) {
+        setPreviewFile({
+          filePath,
+          content: result.content ?? '',
+          status: 'loaded'
+        });
+      } else {
+        setPreviewFile({
+          filePath,
+          content: null,
+          status: 'error',
+          error: result.error || 'Failed to read file'
+        });
+      }
+    } catch (err) {
+      setPreviewFile({
+        filePath,
+        content: null,
+        status: 'error',
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
+    }
+  }, []);
+
+  const handleClosePreviewFile = useCallback(() => {
+    setPreviewFile(null);
+    setActivitySidebarMode(CoworkActivitySidebarMode.Overview);
+  }, []);
+
   const displayItems = useMemo(() => messages ? buildDisplayItems(messages) : [], [messages]);
   const turns = useMemo(() => buildConversationTurns(displayItems), [displayItems]);
 
@@ -2883,6 +2946,7 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
             showTypingIndicator
             showCopyButtons={!isStreaming}
             onOpenFileChange={handleOpenActivityFileChange}
+            onLocalLinkClick={handleLocalLinkClick}
           />
         </div>
       );
@@ -2909,7 +2973,7 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
         <LazyRenderTurn key={turn.id} turnId={turn.id} alwaysRender={alwaysRender} data-turn-index={index}>
           {turn.userMessage && (
             <div data-export-role="user-message" {...(userRailIdx >= 0 ? { 'data-rail-index': userRailIdx } : undefined)}>
-              <UserMessageItem message={turn.userMessage} skills={skills} onReEdit={remoteManaged ? undefined : handleReEdit} />
+              <UserMessageItem message={turn.userMessage} skills={skills} onReEdit={remoteManaged ? undefined : handleReEdit} onLocalLinkClick={handleLocalLinkClick} />
             </div>
           )}
           {showAssistantBlock && (
@@ -2921,6 +2985,7 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
                 showTypingIndicator={showTypingIndicator}
                 showCopyButtons={!isStreaming}
                 onOpenFileChange={handleOpenActivityFileChange}
+                onLocalLinkClick={handleLocalLinkClick}
               />
             </div>
           )}
@@ -2977,6 +3042,19 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
             >
               {i18nService.t('coworkStudioTabStudio')}
             </button>
+            {currentSessionId && runtimeState && (
+              <button
+                type="button"
+                onClick={() => setSessionViewMode('execution')}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  sessionViewMode === 'execution'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-secondary hover:text-foreground'
+                }`}
+              >
+                Execution Tree
+              </button>
+            )}
           </div>
           {isRenaming ? (
             <input
@@ -3180,6 +3258,10 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
                 isStreaming={isStreaming}
                 resolveLocalFilePath={resolveLocalFilePath}
               />
+            ) : sessionViewMode === 'execution' ? (
+              <div className="h-full px-4 overflow-hidden pb-4">
+                <CoworkAgentHierarchyPanel sessionId={currentSession.id} />
+              </div>
             ) : (
               <>
                 <div
@@ -3459,6 +3541,9 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
               onSelectLiveFile={handleSelectLiveFile}
               onResizeStart={handleActivitySidebarResizeStart}
               onClose={handleCloseActivitySidebar}
+              previewFile={previewFile}
+              onClosePreviewFile={handleClosePreviewFile}
+              onOpenFile={handleLocalLinkClick}
             />
           </div>
         )}
@@ -3480,6 +3565,9 @@ const CoworkSessionDetail: React.FC<CoworkSessionDetailProps> = ({
               onSelectFileChange={handleSelectActivityFileChange}
               onSelectLiveFile={handleSelectLiveFile}
               onClose={handleCloseActivitySidebar}
+              previewFile={previewFile}
+              onClosePreviewFile={handleClosePreviewFile}
+              onOpenFile={handleLocalLinkClick}
             />
           </div>
         )}

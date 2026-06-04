@@ -8,7 +8,7 @@ import {
   type CliCoworkAgentEngine,
   CoworkAgentEngine,
 } from '../../shared/cowork/constants';
-import { resolveUserShellPath } from './coworkUtil';
+import { resolveUserShellPath, resolveWindowsRegistryPath } from './coworkUtil';
 import {
   listDeepSeekTuiModelProviders,
   parseDeepSeekTuiConfigText,
@@ -321,14 +321,64 @@ const quoteForShell = (value: string): string => {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 };
 
+let cachedNpmPrefix: string | null = null;
+const getNpmPrefix = (): string | null => {
+  if (cachedNpmPrefix !== null) return cachedNpmPrefix || null;
+  try {
+    const env = { ...process.env };
+    if (process.platform === 'win32') {
+      const registryPath = resolveWindowsRegistryPath();
+      if (registryPath) {
+        const currentPath = env.PATH || '';
+        env.PATH = currentPath ? `${currentPath};${registryPath}` : registryPath;
+      }
+    }
+    const result = spawnSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['config', 'get', 'prefix'], {
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+      timeout: 3000,
+      env,
+    });
+    if (result.status === 0 && result.stdout) {
+      cachedNpmPrefix = result.stdout.trim();
+      return cachedNpmPrefix || null;
+    }
+  } catch {
+    // Ignore and fallback
+  }
+  cachedNpmPrefix = '';
+  return null;
+};
+
 const getWindowsSearchPaths = (command: string): string[] => {
   const home = homeDir();
   const appData = process.env.APPDATA || '';
   const localAppData = process.env.LOCALAPPDATA || '';
   const userName = path.basename(home);
 
+  const prefix = getNpmPrefix();
+  const customNpmPath = prefix ? path.join(prefix, `${command}.cmd`) : null;
+  const customNpmExePath = prefix ? path.join(prefix, `${command}.exe`) : null;
+
+  const registryCandidates: string[] = [];
+  if (process.platform === 'win32') {
+    const registryPath = resolveWindowsRegistryPath();
+    if (registryPath) {
+      for (const entry of registryPath.split(';')) {
+        const trimmed = entry.trim();
+        if (trimmed) {
+          registryCandidates.push(path.join(trimmed, `${command}.cmd`));
+          registryCandidates.push(path.join(trimmed, `${command}.exe`));
+          registryCandidates.push(path.join(trimmed, `${command}.bat`));
+        }
+      }
+    }
+  }
+
   if (command === 'hermes') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
+      ...(customNpmExePath ? [customNpmExePath] : []),
       path.join(appData, 'npm', 'hermes.cmd'),
       path.join(appData, 'npm', 'hermes.exe'),
       path.join(home, '.local', 'bin', 'hermes.exe'),
@@ -338,45 +388,58 @@ const getWindowsSearchPaths = (command: string): string[] => {
       `\\\\wsl$\\Ubuntu\\home\\${userName}\\.hermes\\bin\\hermes`,
       'D:\\Program Files\\Hermes Studio\\resources\\python\\Scripts\\hermes.cmd',
       'C:\\Program Files\\Hermes Studio\\resources\\python\\Scripts\\hermes.cmd',
+      ...registryCandidates,
     ];
   }
   if (command === 'claude') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'claude.cmd'),
       path.join(home, '.local', 'bin', 'claude.exe'),
+      ...registryCandidates,
     ];
   }
   if (command === 'codex') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'codex.cmd'),
+      ...registryCandidates,
     ];
   }
   if (command === 'openclaw') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'openclaw.cmd'),
       'C:\\Program Files (x86)\\ClawX\\resources\\cli\\openclaw',
       'C:\\Program Files\\ClawX\\resources\\cli\\openclaw',
       path.join(localAppData, 'Programs', 'ClawX', 'resources', 'cli', 'openclaw'),
       path.join(home, '.openclaw', 'bin', 'openclaw'),
+      ...registryCandidates,
     ];
   }
   if (command === 'opencode') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'opencode.cmd'),
+      ...registryCandidates,
     ];
   }
   if (command === 'qwen') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'qwen.cmd'),
+      ...registryCandidates,
     ];
   }
   if (command === 'deepseek-tui') {
     return [
+      ...(customNpmPath ? [customNpmPath] : []),
       path.join(appData, 'npm', 'deepseek-tui.cmd'),
+      ...registryCandidates,
     ];
   }
 
-  return [];
+  return registryCandidates;
 };
 
 const preferWindowsExecutable = (candidates: string[]): string | null => {
@@ -403,9 +466,19 @@ const resolveCommand = (command: string): { found: boolean; path: string | null;
     }
   }
 
+  const env = { ...process.env };
+  if (process.platform === 'win32') {
+    const registryPath = resolveWindowsRegistryPath();
+    if (registryPath) {
+      const currentPath = env.PATH || '';
+      env.PATH = currentPath ? `${currentPath};${registryPath}` : registryPath;
+    }
+  }
+
   const result = spawnSync(process.platform === 'win32' ? 'where' : 'which', [command], {
     encoding: 'utf8',
     shell: false,
+    env,
   });
   if (result.status === 0) {
     const candidates = result.stdout.split(/\r?\n/).map(line => line.trim()).filter(Boolean);

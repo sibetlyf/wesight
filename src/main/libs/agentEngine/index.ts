@@ -1,4 +1,6 @@
 export { ClaudeRuntimeAdapter } from './claudeRuntimeAdapter';
+export { ClawRuntimeAdapter } from './clawRuntimeAdapter';
+export type { ClawNormalizedEvent, ClawRawEvent } from './clawRuntimeEvent';
 export { CodexAppRuntimeAdapter } from './codexAppRuntimeAdapter';
 export { CoworkEngineRouter } from './coworkEngineRouter';
 export { DeepSeekTuiRuntimeAdapter } from './deepSeekTuiRuntimeAdapter';

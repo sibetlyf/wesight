@@ -121,6 +121,7 @@ export interface CoworkConfig {
   memoryLlmJudgeEnabled: boolean;
   memoryGuardLevel: 'strict' | 'standard' | 'relaxed';
   memoryUserMemoriesMaxItems: number;
+  clawServerUrl?: string;
 }
 
 export type CoworkConfigUpdate = Partial<Pick<
@@ -144,6 +145,7 @@ export type CoworkConfigUpdate = Partial<Pick<
   | 'memoryLlmJudgeEnabled'
   | 'memoryGuardLevel'
   | 'memoryUserMemoriesMaxItems'
+  | 'clawServerUrl'
 >>;
 
 export interface CoworkApiConfig {
@@ -471,3 +473,59 @@ export interface CoworkStreamEvent {
     claudeSessionId?: string;
   };
 }
+
+export interface AgentTimelineItem {
+  id: string;
+  nodeId: string;
+  kind: 'message' | 'reasoning' | 'tool_start' | 'tool_end' | 'tool_error' | 'status' | 'error' | 'agent_start' | 'agent_end';
+  timestamp: number;
+  text?: string;
+  toolCallId?: string;
+  toolName?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface AgentToolCall {
+  toolCallId: string;
+  toolName: string;
+  status: 'running' | 'completed' | 'error';
+  startedAt: number;
+  finishedAt?: number;
+  args?: unknown;
+  result?: unknown;
+  error?: string;
+  spawnedNodeId?: string;
+}
+
+export interface AgentHierarchyNode {
+  nodeId: string;
+  sessionId: string;
+  source: 'orchestrator' | 'subagent';
+  agentId?: string;
+  agentName?: string;
+  runId?: string;
+  parentRunId?: string;
+  parentAgentId?: string;
+  parentNodeId?: string;
+  toolCallId?: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  startedAt: number;
+  updatedAt: number;
+  title: string;
+  content: string;
+  reasoning: string;
+  timelineItemIds: string[];
+  toolCallIds: string[];
+  childNodeIds: string[];
+  unresolvedParent?: boolean;
+}
+
+export interface CoworkRuntimeState {
+  rootNodeIds: string[];
+  nodesById: Record<string, AgentHierarchyNode>;
+  timelineById: Record<string, AgentTimelineItem>;
+  toolCallsById: Record<string, AgentToolCall>;
+  runIdToNodeId: Record<string, string>;
+  toolCallIdToNodeId: Record<string, string>;
+}
+

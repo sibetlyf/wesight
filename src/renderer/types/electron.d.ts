@@ -116,6 +116,7 @@ interface CoworkConfig {
   memoryLlmJudgeEnabled: boolean;
   memoryGuardLevel: 'strict' | 'standard' | 'relaxed';
   memoryUserMemoriesMaxItems: number;
+  clawServerUrl?: string;
 }
 
 type CoworkConfigUpdate = Partial<Pick<
@@ -139,6 +140,7 @@ type CoworkConfigUpdate = Partial<Pick<
   | 'memoryLlmJudgeEnabled'
   | 'memoryGuardLevel'
   | 'memoryUserMemoriesMaxItems'
+  | 'clawServerUrl'
 >>;
 
 type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui';
@@ -755,6 +757,7 @@ interface IElectronAPI {
     onStreamPermissionDismiss: (callback: (data: { requestId: string }) => void) => () => void;
     onStreamComplete: (callback: (data: { sessionId: string; claudeSessionId: string | null }) => void) => () => void;
     onStreamError: (callback: (data: { sessionId: string; error: string }) => void) => () => void;
+    onStreamRuntimeEvent?: (callback: (data: { sessionId: string; event: any }) => void) => () => void;
     onSessionsChanged: (callback: () => void) => () => void;
   };
   dialog: {
@@ -763,6 +766,8 @@ interface IElectronAPI {
     selectFiles: (options?: { title?: string; filters?: { name: string; extensions: string[] }[] }) => Promise<{ success: boolean; paths: string[] }>;
     saveInlineFile: (options: { dataBase64: string; fileName?: string; mimeType?: string; cwd?: string }) => Promise<{ success: boolean; path: string | null; error?: string }>;
     readFileAsDataUrl: (filePath: string) => Promise<{ success: boolean; dataUrl?: string; error?: string }>;
+    readFileText: (filePath: string) => Promise<{ success: boolean; content?: string; error?: string }>;
+    readDirectory: (dirPath: string) => Promise<{ success: boolean; files?: Array<{ name: string; isDirectory: boolean; path: string; relativePath: string }>; error?: string }>;
     saveLocalImageToDirectory: (options: { sourcePath: string; fileName?: string }) => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>;
   };
   shell: {

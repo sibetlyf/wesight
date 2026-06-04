@@ -4,7 +4,6 @@ description: >-
   A Yahoo Finance (yfinance) powered financial analysis tool.
   Get real-time quotes, generate technical indicator reports (RSI/MACD/Bollinger/VWAP/ATR),
   summarize fundamentals, and run a one-shot report that outputs a text summary.
-official: true
 ---
 
 # Stock Information Explorer

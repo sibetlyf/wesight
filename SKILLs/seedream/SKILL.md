@@ -1,8 +1,6 @@
 ---
 name: seedream
 description: Generate AI images using Volcengine Seedream model. Supports text-to-image (T2I), image editing (I2I), multi-image fusion, and web-search-based generation. Use this skill when the user wants to create, generate, or edit images.
-official: true
-version: 1.0.1
 ---
 
 # Seedream 图片生成

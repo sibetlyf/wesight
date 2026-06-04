@@ -33,7 +33,8 @@ export type IpcMetricType =
   | 'fileActivity'
   | 'permission'
   | 'complete'
-  | 'error';
+  | 'error'
+  | 'runtimeEvent';
 
 export type DbMetricOperation =
   | 'getSession'

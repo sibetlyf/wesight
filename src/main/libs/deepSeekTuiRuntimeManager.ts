@@ -2,8 +2,10 @@ import { type ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import crypto from 'crypto';
 import net from 'net';
 import os from 'os';
+import path from 'path';
 
 import { ExternalAgentConfigSource } from '../../shared/cowork/constants';
+import { getExternalAgentEnvironmentSnapshot } from './externalAgentEnvironment';
 
 export interface DeepSeekTuiRuntimeOptions {
   cwd: string;
@@ -113,13 +115,46 @@ export class DeepSeekTuiRuntimeManager {
       token,
     );
 
-    const child = spawn('deepseek-tui', args, {
+    const env = {
+      ...process.env,
+      ...options.env,
+    };
+    let resolvedPath: string | null = null;
+    try {
+      const snapshot = getExternalAgentEnvironmentSnapshot();
+      const engineStatus = snapshot.engines.find((e) => e.appType === 'deepseek_tui');
+      if (engineStatus?.found && engineStatus.path) {
+        resolvedPath = engineStatus.path;
+        const binDir = path.dirname(resolvedPath);
+        const keys = Object.keys(env).filter((k) => k.toUpperCase() === 'PATH');
+        if (keys.length === 0) {
+          env.PATH = binDir;
+        } else {
+          for (const key of keys) {
+            const val = env[key];
+            env[key] = val ? `${binDir}${path.delimiter}${val}` : binDir;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[DeepSeekTuiRuntimeManager] Failed to resolve and prepend command directory to PATH:', err);
+    }
+
+    let spawnCommand = resolvedPath || 'deepseek-tui';
+    let spawnArgs = args;
+    let windowsVerbatimArguments = false;
+
+    if (resolvedPath && process.platform === 'win32' && /\.(cmd|bat)$/i.test(resolvedPath)) {
+      spawnCommand = 'cmd.exe';
+      spawnArgs = ['/d', '/s', '/c', `call "${resolvedPath}" ${args.map((arg) => `"${arg.replace(/"/g, '\\"')}"`).join(' ')}`];
+      windowsVerbatimArguments = true;
+    }
+
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd: options.cwd || os.homedir(),
-      env: {
-        ...process.env,
-        ...options.env,
-      },
+      env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsVerbatimArguments,
       windowsHide: process.platform === 'win32',
     });
 

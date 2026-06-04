@@ -15,6 +15,7 @@ export const CoworkAgentEngine = {
   GrokBuild: 'grok_build',
   QwenCode: 'qwen_code',
   DeepSeekTui: 'deepseek_tui',
+  ClawRuntime: 'claw_runtime',
 } as const;
 
 export type CoworkAgentEngine = typeof CoworkAgentEngine[keyof typeof CoworkAgentEngine];
@@ -32,6 +33,7 @@ export const CoworkAgentEngineValues = [
   CoworkAgentEngine.GrokBuild,
   CoworkAgentEngine.QwenCode,
   CoworkAgentEngine.DeepSeekTui,
+  CoworkAgentEngine.ClawRuntime,
 ] as const;
 
 export const CliCoworkAgentEngines = [
@@ -43,6 +45,7 @@ export const CliCoworkAgentEngines = [
   CoworkAgentEngine.GrokBuild,
   CoworkAgentEngine.QwenCode,
   CoworkAgentEngine.DeepSeekTui,
+  CoworkAgentEngine.ClawRuntime,
 ] as const;
 
 export type CliCoworkAgentEngine = typeof CliCoworkAgentEngines[number];
@@ -277,6 +280,7 @@ export const CoworkIpcChannel = {
   StreamComplete: 'cowork:stream:complete',
   StreamError: 'cowork:stream:error',
   StreamFileActivity: 'cowork:stream:fileActivity',
+  StreamRuntimeEvent: 'cowork:stream:runtimeEvent',
   PerformanceRendererReady: 'cowork:performance:rendererReady',
   PerformanceSettingsMetric: 'cowork:performance:settingsMetric',
   StartupServicesStatus: 'cowork:startupServices:status',

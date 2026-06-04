@@ -1,3 +1,5 @@
+import { net } from 'electron';
+
 import { resolveCurrentApiConfig } from './claudeSettings';
 import type { CoworkMemoryGuardLevel } from './coworkMemoryExtractor';
 import { isQuestionLikeMemoryText } from './coworkMemoryExtractor';
@@ -229,7 +231,7 @@ async function judgeWithLlm(
   });
 
   try {
-    const response = await fetch(url, {
+    const response = await net.fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

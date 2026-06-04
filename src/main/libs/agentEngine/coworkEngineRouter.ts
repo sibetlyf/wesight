@@ -28,6 +28,7 @@ type RouterDeps = {
   grokBuildRuntime: CoworkRuntime;
   qwenCodeRuntime: CoworkRuntime;
   deepSeekTuiRuntime: CoworkRuntime;
+  clawRuntime: CoworkRuntime;
   telemetryTracker?: RuntimeTelemetryTracker;
 };
 
@@ -54,6 +55,7 @@ export class CoworkEngineRouter extends EventEmitter implements CoworkRuntime {
       [CoworkAgentEngineValue.GrokBuild]: deps.grokBuildRuntime,
       [CoworkAgentEngineValue.QwenCode]: deps.qwenCodeRuntime,
       [CoworkAgentEngineValue.DeepSeekTui]: deps.deepSeekTuiRuntime,
+      [CoworkAgentEngineValue.ClawRuntime]: deps.clawRuntime,
     };
     this.currentEngine = this.safeResolveEngine();
     this.telemetryTracker = deps.telemetryTracker;
@@ -68,6 +70,7 @@ export class CoworkEngineRouter extends EventEmitter implements CoworkRuntime {
     this.bindRuntimeEvents(CoworkAgentEngineValue.GrokBuild, deps.grokBuildRuntime);
     this.bindRuntimeEvents(CoworkAgentEngineValue.QwenCode, deps.qwenCodeRuntime);
     this.bindRuntimeEvents(CoworkAgentEngineValue.DeepSeekTui, deps.deepSeekTuiRuntime);
+    this.bindRuntimeEvents(CoworkAgentEngineValue.ClawRuntime, deps.clawRuntime);
   }
 
   override on<U extends keyof CoworkRuntimeEvents>(
@@ -248,6 +251,11 @@ export class CoworkEngineRouter extends EventEmitter implements CoworkRuntime {
       this.sessionEngine.delete(sessionId);
       this.clearRequestEngineBySession(sessionId);
       this.emit('sessionStopped', sessionId);
+    });
+
+    runtime.on('runtimeEvent', (sessionId, event) => {
+      this.sessionEngine.set(sessionId, engine);
+      this.emit('runtimeEvent', sessionId, event);
     });
   }
 

@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/cowork/constants';
 import type { CoworkSessionRuntimeSnapshot } from '../../../shared/cowork/runtimeSnapshot';
 import type { CoworkMessage } from '../../coworkStore';
+import type { ClawNormalizedEvent } from './clawRuntimeEvent';
 
 export type { CoworkAgentEngine, RuntimeCallSource };
 
@@ -41,6 +42,7 @@ export interface CoworkRuntimeEvents {
   complete: (sessionId: string, claudeSessionId: string | null) => void;
   error: (sessionId: string, error: string) => void;
   sessionStopped: (sessionId: string) => void;
+  runtimeEvent: (sessionId: string, event: ClawNormalizedEvent) => void;
 }
 
 export type CoworkImageAttachment = {

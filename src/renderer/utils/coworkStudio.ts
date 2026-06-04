@@ -46,6 +46,15 @@ const engineAvatarManifest: Record<CoworkAgentEngine, CoworkStudioAvatar> = {
     faceColor: 0xffc2a6,
     prop: 'claw',
   },
+  [CoworkAgentEngine.ClawRuntime]: {
+    id: 'claw_runtime',
+    nameTag: 'Claw Runtime',
+    primaryColor: 0x9333ea,
+    secondaryColor: 0x581c87,
+    accentColor: 0xe9d5ff,
+    faceColor: 0xf3e8ff,
+    prop: 'claw',
+  },
   [CoworkAgentEngine.ClaudeCode]: {
     id: 'claude_code',
     nameTag: 'Claude Code',
@@ -152,6 +161,7 @@ const getConfigSource = (config: CoworkConfig): ExternalAgentConfigSource | null
   if (config.agentEngine === CoworkAgentEngine.QwenCode) return config.qwenCodeConfigSource;
   if (config.agentEngine === CoworkAgentEngine.DeepSeekTui) return config.deepseekTuiConfigSource;
   if (config.agentEngine === CoworkAgentEngine.OpenClaw) return config.openclawConfigSource;
+  if (config.agentEngine === CoworkAgentEngine.ClawRuntime) return ExternalAgentConfigSource.LocalCli;
   return null;
 };
 

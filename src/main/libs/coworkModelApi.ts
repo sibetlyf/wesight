@@ -202,3 +202,48 @@ export function extractTextFromOpenAIChatCompletionResponse(payload: unknown): s
 
   return choiceTexts.join('\n').trim();
 }
+
+export function parseLlmResponsePayload(text: string, contentType: string, protocol: string): any {
+  const isSse = contentType.includes('text/event-stream') || text.trim().startsWith('data:');
+  if (!isSse) {
+    return JSON.parse(text);
+  }
+
+  let aggregatedContent = '';
+  const lines = text.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('data:')) {
+      const dataStr = trimmed.slice(5).trim();
+      if (dataStr === '[DONE]') {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(dataStr);
+        if (parsed.choices?.[0]?.delta?.content) {
+          aggregatedContent += parsed.choices[0].delta.content;
+        } else if (parsed.choices?.[0]?.text) {
+          aggregatedContent += parsed.choices[0].text;
+        } else if (parsed.delta?.text) {
+          aggregatedContent += parsed.delta.text;
+        }
+      } catch {
+        // Ignore malformed chunks
+      }
+    }
+  }
+
+  if (protocol === CoworkModelProtocol.GeminiNative) {
+    return {
+      candidates: [{ content: { parts: [{ text: aggregatedContent }] } }]
+    };
+  } else if (protocol === CoworkModelProtocol.OpenAICompat) {
+    return {
+      choices: [{ message: { content: aggregatedContent } }]
+    };
+  } else {
+    return {
+      content: [{ type: 'text', text: aggregatedContent }]
+    };
+  }
+}

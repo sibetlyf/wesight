@@ -143,6 +143,11 @@ const COWORK_AGENT_ENGINE_OPTIONS: Array<{
     labelKey: 'coworkAgentEngineDeepSeekTui',
     hintKey: 'coworkAgentEngineDeepSeekTuiHint',
   },
+  {
+    value: CoworkAgentEngineValue.ClawRuntime,
+    labelKey: 'coworkAgentEngineClawRuntime',
+    hintKey: 'coworkAgentEngineClawRuntimeHint',
+  },
 ];
 
 const PET_VARIANT_OPTIONS: Array<{
@@ -916,6 +921,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
 
   const [coworkAgentEngine, setCoworkAgentEngine] = useState<CoworkAgentEngine>(coworkConfig.agentEngine || CoworkAgentEngineValue.YdCowork);
   const [expandedCoworkAgentEngine, setExpandedCoworkAgentEngine] = useState<CoworkAgentEngine | null>(null);
+  const [clawServerUrl, setClawServerUrl] = useState<string>(coworkConfig.clawServerUrl || 'http://127.0.0.1:8000');
   const [coworkMemoryEnabled, setCoworkMemoryEnabled] = useState<boolean>(coworkConfig.memoryEnabled ?? true);
   const [coworkMemoryLlmJudgeEnabled, setCoworkMemoryLlmJudgeEnabled] = useState<boolean>(coworkConfig.memoryLlmJudgeEnabled ?? false);
   const [coworkMemoryEntries, setCoworkMemoryEntries] = useState<CoworkUserMemoryEntry[]>([]);
@@ -1012,6 +1018,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
     setDeepSeekTuiPermissionMode(coworkConfig.deepseekTuiPermissionMode ?? DeepSeekTuiPermissionModeValue.Auto);
     setCoworkMemoryEnabled(coworkConfig.memoryEnabled ?? true);
     setCoworkMemoryLlmJudgeEnabled(coworkConfig.memoryLlmJudgeEnabled ?? false);
+    setClawServerUrl(coworkConfig.clawServerUrl || 'http://127.0.0.1:8000');
   }, [
     coworkConfig.agentEngine,
     coworkConfig.openclawConfigSource,
@@ -1027,6 +1034,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
     coworkConfig.deepseekTuiPermissionMode,
     coworkConfig.memoryEnabled,
     coworkConfig.memoryLlmJudgeEnabled,
+    coworkConfig.clawServerUrl,
   ]);
 
   useEffect(() => () => {
@@ -1750,7 +1758,8 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
     || deepseekTuiConfigSource !== coworkConfig.deepseekTuiConfigSource
     || deepseekTuiPermissionMode !== coworkConfig.deepseekTuiPermissionMode
     || coworkMemoryEnabled !== coworkConfig.memoryEnabled
-    || coworkMemoryLlmJudgeEnabled !== coworkConfig.memoryLlmJudgeEnabled;
+    || coworkMemoryLlmJudgeEnabled !== coworkConfig.memoryLlmJudgeEnabled
+    || clawServerUrl !== coworkConfig.clawServerUrl;
   const hasCoworkAgentEngineApplyChanges = coworkAgentEngine !== coworkConfig.agentEngine
     || (coworkAgentEngine === CoworkAgentEngineValue.OpenClaw
       && openclawConfigSource !== coworkConfig.openclawConfigSource)
@@ -1769,7 +1778,9 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
         || qwenCodePermissionMode !== coworkConfig.qwenCodePermissionMode))
     || (coworkAgentEngine === CoworkAgentEngineValue.DeepSeekTui
       && (deepseekTuiConfigSource !== coworkConfig.deepseekTuiConfigSource
-        || deepseekTuiPermissionMode !== coworkConfig.deepseekTuiPermissionMode));
+        || deepseekTuiPermissionMode !== coworkConfig.deepseekTuiPermissionMode))
+    || (coworkAgentEngine === CoworkAgentEngineValue.ClawRuntime
+      && clawServerUrl !== coworkConfig.clawServerUrl);
   const isCoworkAgentConfigApplying = isSaving
     && activeTab === 'coworkAgentEngine'
     && hasCoworkAgentEngineApplyChanges;
@@ -2177,6 +2188,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
           deepseekTuiPermissionMode,
           memoryEnabled: coworkMemoryEnabled,
           memoryLlmJudgeEnabled: coworkMemoryLlmJudgeEnabled,
+          clawServerUrl,
         });
         if (!updated) {
           throw new Error(i18nService.t('coworkConfigSaveFailed'));
@@ -3476,9 +3488,35 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
     );
   };
 
+  const renderClawRuntimeAgentEngineDetails = () => {
+    return (
+      <div className="mt-4 space-y-4">
+        {renderAgentEngineMeta(CoworkAgentEngineValue.ClawRuntime)}
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="text-sm font-medium text-foreground">
+            Claw 智能体服务地址
+          </div>
+          <input
+            type="text"
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+            placeholder="http://127.0.0.1:8000"
+            value={clawServerUrl}
+            onChange={(e) => setClawServerUrl(e.target.value)}
+          />
+          <span className="mt-1 block text-xs leading-5 text-secondary">
+            配置您远端或本地 llm-host-claw 服务的接口访问基地址（默认：http://127.0.0.1:8000）。
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   const renderSelectedAgentEngineDetails = (engine: CoworkAgentEngine) => {
     if (engine === CoworkAgentEngineValue.CodexApp) {
       return renderCodexAppAgentEngineDetails();
+    }
+    if (engine === CoworkAgentEngineValue.ClawRuntime) {
+      return renderClawRuntimeAgentEngineDetails();
     }
     if (
       engine === CoworkAgentEngineValue.ClaudeCode

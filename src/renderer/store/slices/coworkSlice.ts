@@ -10,10 +10,15 @@ import {
 } from '@shared/cowork/constants';
 import { type CoworkFileActivity,CoworkFileActivityStatus } from '@shared/cowork/fileActivity';
 
+import type { ClawNormalizedEvent } from '../../../main/libs/agentEngine/clawRuntimeEvent';
 import type {
+  AgentHierarchyNode,
+  AgentTimelineItem,
+  AgentToolCall,
   CoworkConfig,
   CoworkMessage,
   CoworkPermissionRequest,
+  CoworkRuntimeState,
   CoworkSession,
   CoworkSessionStatus,
   CoworkSessionSummary,
@@ -41,6 +46,7 @@ interface CoworkState {
   pendingPermissions: CoworkPermissionRequest[];
   liveFileActivitiesBySession: Record<string, CoworkFileActivity[]>;
   config: CoworkConfig;
+  runtimeStates: Record<string, CoworkRuntimeState>;
 }
 
 type StreamMessageUpdateMode = 'snapshot' | 'delta' | 'final';
@@ -89,6 +95,7 @@ const initialState: CoworkState = {
     memoryGuardLevel: 'strict',
     memoryUserMemoriesMaxItems: 12,
   },
+  runtimeStates: {},
 };
 
 const markSessionRead = (state: CoworkState, sessionId: string | null) => {
@@ -454,6 +461,219 @@ const coworkSlice = createSlice({
     clearDraftAttachments(state, action: PayloadAction<string>) {
       delete state.draftAttachments[action.payload];
     },
+
+    appendRuntimeEvent(state, action: PayloadAction<{ sessionId: string; event: ClawNormalizedEvent }>) {
+      const { sessionId, event } = action.payload;
+
+      if (!state.runtimeStates) {
+        state.runtimeStates = {};
+      }
+      if (!state.runtimeStates[sessionId]) {
+        state.runtimeStates[sessionId] = {
+          rootNodeIds: [],
+          nodesById: {},
+          timelineById: {},
+          toolCallsById: {},
+          runIdToNodeId: {},
+          toolCallIdToNodeId: {},
+        };
+      }
+
+      const rState = state.runtimeStates[sessionId];
+      const { kind, source, runId, parentRunId, agentId, agentName, toolCallId, toolName, timestamp, id: eventId } = event;
+
+      // Identify the node key / ID
+      let nodeKey = '';
+      if (runId) {
+        nodeKey = `run:${runId}`;
+      } else if (toolCallId) {
+        nodeKey = `tool:${toolCallId}`;
+      } else if (agentId) {
+        nodeKey = `agent:${agentId}`;
+      } else {
+        nodeKey = `anon:${timestamp}`;
+      }
+
+      // Keep track of mapping runId and toolCallId to nodeKey
+      if (runId) {
+        rState.runIdToNodeId[runId] = nodeKey;
+      }
+      if (toolCallId) {
+        rState.toolCallIdToNodeId[toolCallId] = nodeKey;
+      }
+
+      // Retrieve or create the Node
+      let node: AgentHierarchyNode | undefined = rState.nodesById[nodeKey];
+      if (!node) {
+        node = {
+          nodeId: nodeKey,
+          sessionId,
+          source: source === 'orchestrator' ? 'orchestrator' : 'subagent',
+          agentId,
+          agentName,
+          runId,
+          parentRunId,
+          parentAgentId: event.parentAgentId,
+          toolCallId,
+          status: 'pending',
+          startedAt: timestamp,
+          updatedAt: timestamp,
+          title: agentName || (source === 'orchestrator' ? 'Orchestrator' : 'Subagent'),
+          content: '',
+          reasoning: '',
+          timelineItemIds: [],
+          toolCallIds: [],
+          childNodeIds: [],
+        };
+        rState.nodesById[nodeKey] = node;
+
+        // Try parent linking
+        let parentLinked = false;
+        
+        // Parent resolution rules in order:
+        // A. parentRunId
+        if (parentRunId) {
+          const parentNodeId = rState.runIdToNodeId[parentRunId];
+          if (parentNodeId && rState.nodesById[parentNodeId]) {
+            node.parentNodeId = parentNodeId;
+            const parentNode = rState.nodesById[parentNodeId];
+            if (!parentNode.childNodeIds.includes(nodeKey)) {
+              parentNode.childNodeIds.push(nodeKey);
+            }
+            parentLinked = true;
+          }
+        }
+        
+        // B. toolCallId (a subagent is spawned by a tool call)
+        if (!parentLinked && toolCallId) {
+          const parentNodeId = rState.toolCallIdToNodeId[toolCallId];
+          if (parentNodeId && rState.nodesById[parentNodeId]) {
+            node.parentNodeId = parentNodeId;
+            const parentNode = rState.nodesById[parentNodeId];
+            if (!parentNode.childNodeIds.includes(nodeKey)) {
+              parentNode.childNodeIds.push(nodeKey);
+            }
+            // Link tool call to this spawned node
+            const toolCall = rState.toolCallsById[toolCallId];
+            if (toolCall) {
+              toolCall.spawnedNodeId = nodeKey;
+            }
+            parentLinked = true;
+          }
+        }
+
+        // C. parentAgentId
+        if (!parentLinked && event.parentAgentId) {
+          const parentNodeId = `agent:${event.parentAgentId}`;
+          if (rState.nodesById[parentNodeId]) {
+            node.parentNodeId = parentNodeId;
+            const parentNode = rState.nodesById[parentNodeId];
+            if (!parentNode.childNodeIds.includes(nodeKey)) {
+              parentNode.childNodeIds.push(nodeKey);
+            }
+            parentLinked = true;
+          }
+        }
+
+        if (!parentLinked) {
+          if (source !== 'orchestrator') {
+            node.unresolvedParent = true;
+          } else {
+            if (!rState.rootNodeIds.includes(nodeKey)) {
+              rState.rootNodeIds.push(nodeKey);
+            }
+          }
+        }
+      }
+
+      // Try resolving any unresolved nodes that could be children of the current node
+      if (runId || toolCallId) {
+        Object.values(rState.nodesById).forEach((otherNode) => {
+          if (otherNode.unresolvedParent) {
+            let shouldLink = false;
+            if (otherNode.parentRunId && otherNode.parentRunId === runId) {
+              shouldLink = true;
+            } else if (otherNode.toolCallId && otherNode.toolCallId === toolCallId) {
+              shouldLink = true;
+            }
+            if (shouldLink) {
+              otherNode.parentNodeId = nodeKey;
+              otherNode.unresolvedParent = false;
+              if (!node.childNodeIds.includes(otherNode.nodeId)) {
+                node.childNodeIds.push(otherNode.nodeId);
+              }
+              if (otherNode.toolCallId) {
+                const toolCall = rState.toolCallsById[otherNode.toolCallId];
+                if (toolCall) {
+                  toolCall.spawnedNodeId = otherNode.nodeId;
+                }
+              }
+            }
+          }
+        });
+      }
+
+      node.updatedAt = timestamp;
+
+      // Handle Event details based on Kind
+      if (kind === 'agent_start') {
+        node.status = 'running';
+      } else if (kind === 'agent_end') {
+        node.status = 'completed';
+      } else if (kind === 'error') {
+        node.status = 'error';
+        node.content += `\n[Error]: ${event.error}`;
+      } else if (kind === 'message' && event.content) {
+        node.content += event.content;
+      } else if (kind === 'reasoning' && event.reasoningContent) {
+        node.reasoning += event.reasoningContent;
+      }
+
+      // Handle Tool Call specific event kinds
+      if (toolCallId && toolName) {
+        let toolCall: AgentToolCall | undefined = rState.toolCallsById[toolCallId];
+        if (!toolCall) {
+          toolCall = {
+            toolCallId,
+            toolName,
+            status: 'running',
+            startedAt: timestamp,
+            args: event.toolArgs,
+          };
+          rState.toolCallsById[toolCallId] = toolCall;
+          if (!node.toolCallIds.includes(toolCallId)) {
+            node.toolCallIds.push(toolCallId);
+          }
+        }
+
+        if (kind === 'tool_end') {
+          toolCall.status = 'completed';
+          toolCall.finishedAt = timestamp;
+          toolCall.result = event.toolResult;
+        } else if (kind === 'tool_error') {
+          toolCall.status = 'error';
+          toolCall.finishedAt = timestamp;
+          toolCall.error = event.error;
+        }
+      }
+
+      // Create and append Timeline Item
+      const timelineItemId = eventId || `timeline:${timestamp}:${Math.random()}`;
+      const timelineItem: AgentTimelineItem = {
+        id: timelineItemId,
+        nodeId: nodeKey,
+        kind,
+        timestamp,
+        text: event.content || event.reasoningContent || event.error,
+        toolCallId,
+        toolName,
+        metadata: event.metadata,
+      };
+      rState.timelineById[timelineItemId] = timelineItem;
+      if (!node.timelineItemIds.includes(timelineItemId)) {
+        node.timelineItemIds.push(timelineItemId);
+      }
+    },
   },
 });
 
@@ -474,6 +694,7 @@ export const {
   appendMessages,
   prependMessages,
   updateMessageContent,
+  appendRuntimeEvent,
   setStreaming,
   setRemoteManaged,
   updateSessionPinned,

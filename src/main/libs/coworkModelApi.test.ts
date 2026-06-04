@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import {
   buildAnthropicMessagesUrl,
   buildGeminiGenerateContentUrl,
@@ -8,6 +9,7 @@ import {
   extractTextFromGeminiResponse,
   extractTextFromOpenAIChatCompletionResponse,
   normalizeGeminiBaseUrl,
+  parseLlmResponsePayload,
 } from './coworkModelApi';
 
 describe('coworkModelApi', () => {
@@ -106,5 +108,45 @@ describe('coworkModelApi', () => {
         ],
       })
     ).toBe('');
+  });
+
+  describe('parseLlmResponsePayload', () => {
+    test('parses normal JSON response correctly', () => {
+      const json = JSON.stringify({ choices: [{ message: { content: 'hello' } }] });
+      const payload = parseLlmResponsePayload(json, 'application/json', 'openai_compat');
+      expect(payload).toEqual({ choices: [{ message: { content: 'hello' } }] });
+    });
+
+    test('parses OpenAI-compat SSE response correctly', () => {
+      const sseText = [
+        'data: {"choices":[{"delta":{"content":"hello"}}]}',
+        'data: {"choices":[{"delta":{"content":" world"}}]}',
+        'data: [DONE]',
+      ].join('\n');
+      const payload = parseLlmResponsePayload(sseText, 'text/event-stream', 'openai_compat');
+      expect(payload).toEqual({ choices: [{ message: { content: 'hello world' } }] });
+    });
+
+    test('parses Gemini Native SSE response correctly', () => {
+      const sseText = [
+        'data: {"choices":[{"delta":{"content":"gemini"}}]}',
+        'data: {"choices":[{"delta":{"content":" response"}}]}',
+      ].join('\n');
+      const payload = parseLlmResponsePayload(sseText, 'text/event-stream', 'gemini_native');
+      expect(payload).toEqual({
+        candidates: [{ content: { parts: [{ text: 'gemini response' }] } }]
+      });
+    });
+
+    test('parses Anthropic SSE response correctly', () => {
+      const sseText = [
+        'data: {"delta":{"text":"anthropic"}}',
+        'data: {"delta":{"text":" response"}}',
+      ].join('\n');
+      const payload = parseLlmResponsePayload(sseText, 'text/event-stream', 'anthropic');
+      expect(payload).toEqual({
+        content: [{ type: 'text', text: 'anthropic response' }]
+      });
+    });
   });
 });

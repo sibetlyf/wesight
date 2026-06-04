@@ -24,6 +24,7 @@ import type {
 import { t } from '../../i18n';
 import { type ApiConfigOverride,resolveRawApiConfig } from '../claudeSettings';
 import { getEnhancedEnvWithTmpdir } from '../coworkUtil';
+import { getExternalAgentEnvironmentSnapshot } from '../externalAgentEnvironment';
 import {
   applyLocalClaudeCodeEnvForPrintMode,
   type LocalClaudeCodeEnvLoadResult,
@@ -287,6 +288,26 @@ export class ExternalCliRuntimeAdapter extends EventEmitter implements CoworkRun
       this.applyQwenCodeRuntimeConfig(env, apiConfigOverride);
     }
     const command = this.getCommandName();
+    let resolvedPath: string | null = null;
+    try {
+      const snapshot = getExternalAgentEnvironmentSnapshot();
+      const engineStatus = snapshot.engines.find((e) => e.engine === this.engine);
+      if (engineStatus?.found && engineStatus.path) {
+        resolvedPath = engineStatus.path;
+        const binDir = path.dirname(resolvedPath);
+        const keys = Object.keys(env).filter((k) => k.toUpperCase() === 'PATH');
+        if (keys.length === 0) {
+          env.PATH = binDir;
+        } else {
+          for (const key of keys) {
+            const val = env[key];
+            env[key] = val ? `${binDir}${path.delimiter}${val}` : binDir;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[ExternalCliRuntimeAdapter] Failed to resolve and prepend command directory to PATH:', err);
+    }
     const codexHomeDir = this.prepareCodexProviderHomeForExecMode(env, selectedProvider);
     const args = this.buildCommandArgs(
       cwd,
@@ -298,10 +319,22 @@ export class ExternalCliRuntimeAdapter extends EventEmitter implements CoworkRun
       apiConfigOverride,
       claudeCodePermissionMode,
     );
-    const child = spawn(command, args, {
+
+    let spawnCommand = resolvedPath || command;
+    let spawnArgs = args;
+    let windowsVerbatimArguments = false;
+
+    if (resolvedPath && process.platform === 'win32' && /\.(cmd|bat)$/i.test(resolvedPath)) {
+      spawnCommand = 'cmd.exe';
+      spawnArgs = ['/d', '/s', '/c', `call "${resolvedPath}" ${args.map((arg) => `"${arg.replace(/"/g, '\\"')}"`).join(' ')}`];
+      windowsVerbatimArguments = true;
+    }
+
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsVerbatimArguments,
       windowsHide: process.platform === 'win32',
     });
 

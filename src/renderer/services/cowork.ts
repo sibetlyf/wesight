@@ -6,6 +6,7 @@ import {
   addMessage,
   addSession,
   appendMessages,
+  appendRuntimeEvent,
   clearCurrentSession,
   clearPendingPermissions,
   deleteSession as deleteSessionAction,
@@ -194,6 +195,14 @@ class CoworkService {
       }
     });
     this.streamListenerCleanups.push(errorCleanup);
+
+    // Runtime event listener
+    const runtimeEventCleanup = cowork.onStreamRuntimeEvent?.(({ sessionId, event }: { sessionId: string; event: any }) => {
+      store.dispatch(appendRuntimeEvent({ sessionId, event }));
+    });
+    if (runtimeEventCleanup) {
+      this.streamListenerCleanups.push(runtimeEventCleanup);
+    }
 
     // Sessions changed listener (new channel sessions discovered or updated by polling)
     const sessionsChangedCleanup = cowork.onSessionsChanged(() => {

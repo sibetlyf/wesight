@@ -77,6 +77,11 @@ const ENGINE_OPTIONS: Array<{
     labelKey: 'coworkAgentEngineDeepSeekTui',
     hintKey: 'coworkAgentEngineDeepSeekTuiHint',
   },
+  {
+    engine: CoworkAgentEngine.ClawRuntime,
+    labelKey: 'coworkAgentEngineClawRuntime',
+    hintKey: 'coworkAgentEngineClawRuntimeHint',
+  },
 ];
 
 const isCliEngine = (engine: CoworkAgentEngineType): boolean => {

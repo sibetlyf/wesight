@@ -3,6 +3,7 @@ export const CoworkActivitySidebarMode = {
   RuntimeMonitor: 'runtime_monitor',
   LiveCode: 'live_code',
   CodeDiff: 'code_diff',
+  FilePreview: 'file_preview',
 } as const;
 export type CoworkActivitySidebarMode = typeof CoworkActivitySidebarMode[keyof typeof CoworkActivitySidebarMode];
 
@@ -11,5 +12,6 @@ export const ActivitySidebarOpenSource = {
   LiveFile: 'live_file',
   ManualOpen: 'manual_open',
   DiffClick: 'diff_click',
+  FileClick: 'file_click',
 } as const;
 export type ActivitySidebarOpenSource = typeof ActivitySidebarOpenSource[keyof typeof ActivitySidebarOpenSource];

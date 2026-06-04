@@ -63,7 +63,6 @@ import { CoworkFileActivityTracker } from './coworkFileActivityTracker';
 import { type CoworkMessage, type CoworkSessionMeta,CoworkStore } from './coworkStore';
 import { setLanguage, t } from './i18n';
 import { IMGatewayConfig,IMGatewayManager } from './im';
-import { formatApiFetchLogPayload } from './libs/apiFetchLogSanitizer';
 import {
   approvePairingCode,
   listPairingRequests,
@@ -79,6 +78,8 @@ import {
 } from './ipcHandlers/scheduledTask';
 import {
   ClaudeRuntimeAdapter,
+  type ClawNormalizedEvent,
+  ClawRuntimeAdapter,
   CodexAppRuntimeAdapter,
   type CoworkAgentEngine,
   CoworkEngineRouter,
@@ -87,6 +88,7 @@ import {
   HermesRuntimeAdapter,
   OpenClawRuntimeAdapter,
 } from './libs/agentEngine';
+import { formatApiFetchLogPayload } from './libs/apiFetchLogSanitizer';
 import { cancelActiveDownload,downloadUpdate, installUpdate } from './libs/appUpdateInstaller';
 import { clearServerModelMetadata,getCurrentApiConfig, resolveCurrentApiConfig, setAuthTokensGetter, setServerBaseUrlGetter, setStoreGetter, updateServerModelMetadata } from './libs/claudeSettings';
 import { CodexAppManager } from './libs/codexAppManager';
@@ -739,6 +741,7 @@ let codexAppServerClient: CodexAppServerClient | null = null;
 let codexAppTaskSync: CodexAppTaskSync | null = null;
 let claudeRuntimeAdapter: ClaudeRuntimeAdapter | null = null;
 let openClawRuntimeAdapter: OpenClawRuntimeAdapter | null = null;
+let clawRuntimeAdapter: ClawRuntimeAdapter | null = null;
 let hermesRuntimeAdapter: HermesRuntimeAdapter | null = null;
 let claudeCodeRuntimeAdapter: ExternalCliRuntimeAdapter | null = null;
 let codexRuntimeAdapter: ExternalCliRuntimeAdapter | null = null;
@@ -2035,6 +2038,11 @@ const bindCoworkRuntimeForwarder = (): void => {
     updateDesktopPetTaskSnapshot(sessionId, DesktopPetTaskStatus.Stopped);
   });
 
+  runtime.on('runtimeEvent', (sessionId: string, event: ClawNormalizedEvent) => {
+    const payload = { sessionId, event };
+    sendCoworkStreamPayload(sessionId, CoworkIpcChannel.StreamRuntimeEvent, 'runtimeEvent', payload, { fallbackToAll: true });
+  });
+
   coworkRuntimeForwarderBound = true;
 };
 
@@ -2139,6 +2147,11 @@ const getCoworkEngineRouter = () => {
         getCurrentProvider: (appType) => getExternalAgentProviderStore().getCurrentProvider(appType),
       });
     }
+    if (!clawRuntimeAdapter) {
+      clawRuntimeAdapter = new ClawRuntimeAdapter({
+        store: getCoworkStore(),
+      });
+    }
     if (!hermesRuntimeAdapter) {
       hermesRuntimeAdapter = new HermesRuntimeAdapter({
         store: getCoworkStore(),
@@ -2158,6 +2171,7 @@ const getCoworkEngineRouter = () => {
       grokBuildRuntime: grokBuildRuntimeAdapter,
       qwenCodeRuntime: qwenCodeRuntimeAdapter,
       deepSeekTuiRuntime: deepSeekTuiRuntimeAdapter,
+      clawRuntime: clawRuntimeAdapter,
       telemetryTracker: getRuntimeTelemetryTracker(),
     });
   }
@@ -6823,6 +6837,89 @@ if (!gotTheLock) {
         return {
           success: false,
           error: error instanceof Error ? error.message : 'Failed to read file',
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'dialog:readFileText',
+    async (_event, filePath?: string): Promise<{ success: boolean; content?: string; error?: string }> => {
+      try {
+        if (typeof filePath !== 'string' || !filePath.trim()) {
+          return { success: false, error: 'Missing file path' };
+        }
+        const resolvedPath = path.resolve(filePath.trim());
+        const stat = await fs.promises.stat(resolvedPath);
+        if (!stat.isFile()) {
+          return { success: false, error: 'Not a file' };
+        }
+        if (stat.size > 2 * 1024 * 1024) { // limit 2MB
+          return {
+            success: false,
+            error: 'File too large (max 2MB)',
+          };
+        }
+        const content = await fs.promises.readFile(resolvedPath, 'utf8');
+        return { success: true, content };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to read file',
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    'dialog:readDirectory',
+    async (_event, dirPath?: string): Promise<{ success: boolean; files?: Array<{ name: string; isDirectory: boolean; path: string; relativePath: string }>; error?: string }> => {
+      try {
+        if (typeof dirPath !== 'string' || !dirPath.trim()) {
+          return { success: false, error: 'Missing directory path' };
+        }
+        const resolvedPath = path.resolve(dirPath.trim());
+        const stat = await fs.promises.stat(resolvedPath);
+        if (!stat.isDirectory()) {
+          return { success: false, error: 'Not a directory' };
+        }
+
+        const resultFiles: Array<{ name: string; isDirectory: boolean; path: string; relativePath: string }> = [];
+        const ignoredDirs = new Set(['.git', 'node_modules', 'dist', 'out', 'build', '.next', '.idea', '.vscode', '.gemini', '.system_generated']);
+
+        async function walk(currentPath: string, depth: number) {
+          if (depth > 2) return; // limit depth to 2 levels to avoid huge files listings
+          const entries = await fs.promises.readdir(currentPath, { withFileTypes: true });
+          for (const entry of entries) {
+            if (ignoredDirs.has(entry.name)) continue;
+            const fullPath = path.join(currentPath, entry.name);
+            const relPath = path.relative(resolvedPath, fullPath).replace(/\\/g, '/');
+            resultFiles.push({
+              name: entry.name,
+              isDirectory: entry.isDirectory(),
+              path: fullPath,
+              relativePath: relPath
+            });
+            if (entry.isDirectory()) {
+              await walk(fullPath, depth + 1);
+            }
+          }
+        }
+
+        await walk(resolvedPath, 1);
+        
+        resultFiles.sort((a, b) => {
+          // Sort directory first, then by relativePath alphabetically
+          if (a.isDirectory && !b.isDirectory) return -1;
+          if (!a.isDirectory && b.isDirectory) return 1;
+          return a.relativePath.localeCompare(b.relativePath);
+        });
+
+        return { success: true, files: resultFiles };
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Failed to read directory',
         };
       }
     }

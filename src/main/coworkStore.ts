@@ -677,6 +677,7 @@ export interface CoworkConfig {
   memoryLlmJudgeEnabled: boolean;
   memoryGuardLevel: CoworkMemoryGuardLevel;
   memoryUserMemoriesMaxItems: number;
+  clawServerUrl?: string;
 }
 
 export type CoworkConfigUpdate = Partial<Pick<
@@ -700,6 +701,7 @@ export type CoworkConfigUpdate = Partial<Pick<
   | 'memoryLlmJudgeEnabled'
   | 'memoryGuardLevel'
   | 'memoryUserMemoriesMaxItems'
+  | 'clawServerUrl'
 >>;
 
 export interface ApplyTurnMemoryUpdatesOptions {
@@ -1692,6 +1694,7 @@ export class CoworkStore {
         'memoryLlmJudgeEnabled',
         'memoryGuardLevel',
         'memoryUserMemoriesMaxItems',
+        'clawServerUrl',
       ] as const;
       const configRows = this.getAll<{ key: string; value: string }>(
         `SELECT key, value FROM cowork_config WHERE key IN (${configKeys.map(() => '?').join(', ')})`,
@@ -1728,6 +1731,7 @@ export class CoworkStore {
         memoryUserMemoriesMaxItems: clampMemoryUserMemoriesMaxItems(
           Number(cfg.get('memoryUserMemoriesMaxItems')),
         ),
+        clawServerUrl: cfg.get('clawServerUrl') || 'http://127.0.0.1:8000',
       };
     });
   }
@@ -1793,6 +1797,9 @@ export class CoworkStore {
       }
       if (config.memoryUserMemoriesMaxItems !== undefined) {
         entries.push(['memoryUserMemoriesMaxItems', String(clampMemoryUserMemoriesMaxItems(config.memoryUserMemoriesMaxItems))]);
+      }
+      if (config.clawServerUrl !== undefined) {
+        entries.push(['clawServerUrl', config.clawServerUrl]);
       }
 
       if (entries.length === 0) return;

@@ -5,7 +5,6 @@ description: >-
   technical indicators, and growth analysis into a single professional report.
   Supports A-share, US stocks, HK stocks. Generates detailed investment recommendations
   with risk assessment and actionable trading strategies.
-official: true
 ---
 
 # Stock Deep Analyzer
