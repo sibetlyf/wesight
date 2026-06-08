@@ -43,6 +43,14 @@ interface AgentEnvironmentSetupProps {
 
 const AGENT_SETUP_TARGETS: AgentSetupTarget[] = [
   {
+    engine: CoworkAgentEngine.ClawRuntime,
+    appType: 'moma_cli',
+    labelKey: 'coworkAgentEngineClawRuntime',
+    hintKey: 'coworkAgentEngineClawRuntimeHint',
+    primary: true,
+    recommended: true,
+  },
+  {
     engine: CoworkAgentEngine.ClaudeCode,
     appType: 'claude',
     labelKey: 'coworkAgentEngineClaudeCode',

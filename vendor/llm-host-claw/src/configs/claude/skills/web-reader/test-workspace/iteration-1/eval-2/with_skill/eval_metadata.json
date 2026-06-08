@@ -1,0 +1,26 @@
+{
+  "eval_id": 2,
+  "eval_name": "news-article-extraction",
+  "prompt": "Use the web-reader skill to scrape a news article from a news website. Extract the headline, publication date, and article body. Enable stealth mode to avoid bot detection.",
+  "assertions": [
+    {
+      "name": "has_headline",
+      "description": "Extracted headline exists",
+      "check": "exists",
+      "path": "$.fields.headline"
+    },
+    {
+      "name": "has_body",
+      "description": "Article body extracted",
+      "check": "exists",
+      "path": "$.text"
+    },
+    {
+      "name": "stealth_enabled",
+      "description": "Stealth mode was used",
+      "check": "jsonpath",
+      "path": "$.metadata.stealth_used",
+      "expected": true
+    }
+  ]
+}

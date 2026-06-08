@@ -47,8 +47,8 @@ const engineAvatarManifest: Record<CoworkAgentEngine, CoworkStudioAvatar> = {
     prop: 'claw',
   },
   [CoworkAgentEngine.ClawRuntime]: {
-    id: 'claw_runtime',
-    nameTag: 'Claw Runtime',
+    id: 'moma_cli',
+    nameTag: 'Moma CLI',
     primaryColor: 0x9333ea,
     secondaryColor: 0x581c87,
     accentColor: 0xe9d5ff,

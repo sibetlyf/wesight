@@ -1,0 +1,80 @@
+<svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066cc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="720" fill="url(#bgGradient)"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1280" height="80" fill="#1e3a5f"/>
+  <text x="60" y="52" font-family="Microsoft YaHei, Arial, sans-serif" font-size="24" fill="#ffffff">AI 与行业融合</text>
+  
+  <!-- Title -->
+  <text x="640" y="150" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="36" font-weight="bold" fill="#1e3a5f">
+    行业应用核心价值
+  </text>
+  
+  <!-- Main Content -->
+  <g transform="translate(140, 200)">
+    <!-- Card 1 -->
+    <rect x="0" y="0" width="450" height="200" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.1))"/>
+    <rect x="0" y="0" width="450" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1e3a5f">⚡ 效率提升</text>
+    <rect x="30" y="70" width="390" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="30" y="70" width="351" height="8" rx="4" fill="url(#blueGradient)"/>
+    <text x="30" y="105" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0066cc">87%</text>
+    <text x="100" y="105" font-family="Arial, sans-serif" font-size="16" fill="#64748b">平均效率提升</text>
+    <text x="30" y="140" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">流程自动化 + 智能决策</text>
+    <text x="30" y="165" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8"> Process automation + intelligent decision making</text>
+  </g>
+  
+  <g transform="translate(690, 200)">
+    <!-- Card 2 -->
+    <rect x="0" y="0" width="450" height="200" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.1))"/>
+    <rect x="0" y="0" width="450" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1e3a5f">💰 成本优化</text>
+    <rect x="30" y="70" width="390" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="30" y="70" width="273" height="8" rx="4" fill="url(#blueGradient)"/>
+    <text x="30" y="105" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0066cc">70%</text>
+    <text x="100" y="105" font-family="Arial, sans-serif" font-size="16" fill="#64748b">运营成本降低</text>
+    <text x="30" y="140" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">人力资源优化配置</text>
+    <text x="30" y="165" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8"> Workforce optimization</text>
+  </g>
+  
+  <g transform="translate(140, 440)">
+    <!-- Card 3 -->
+    <rect x="0" y="0" width="450" height="200" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.1))"/>
+    <rect x="0" y="0" width="450" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1e3a5f">📈 收入增长</text>
+    <rect x="30" y="70" width="390" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="30" y="70" width="312" height="8" rx="4" fill="url(#blueGradient)"/>
+    <text x="30" y="105" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0066cc">80%</text>
+    <text x="100" y="105" font-family="Arial, sans-serif" font-size="16" fill="#64748b">企业收入增长</text>
+    <text x="30" y="140" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">新客户获取 + 交叉销售</text>
+    <text x="30" y="165" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8"> Customer acquisition + cross-selling</text>
+  </g>
+  
+  <g transform="translate(690, 440)">
+    <!-- Card 4 -->
+    <rect x="0" y="0" width="450" height="200" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.1))"/>
+    <rect x="0" y="0" width="450" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="20" font-weight="bold" fill="#1e3a5f">🎯 客户体验</text>
+    <rect x="30" y="70" width="390" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="30" y="70" width="332" height="8" rx="4" fill="url(#blueGradient)"/>
+    <text x="30" y="105" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#0066cc">83%</text>
+    <text x="100" y="105" font-family="Arial, sans-serif" font-size="16" fill="#64748b">满意度提升</text>
+    <text x="30" y="140" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">个性化服务 + 快速响应</text>
+    <text x="30" y="165" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8"> Personalized service + rapid response</text>
+  </g>
+  
+  <!-- Page Number -->
+  <text x="1220" y="700" text-anchor="end" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">8 / 10</text>
+</svg>

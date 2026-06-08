@@ -1,0 +1,37 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.sandbox/
+.cache/
+.moma_cli/
+.moma-test-workspace/
+.tmp_cli_plain/
+.tmp_cli_smoke/
+todo.md
+.pycache/
+# Virtual environments
+.venv
+uv.lock
+.env
+*.log
+run_*.log
+
+
+demo/
+tests/report
+tests/userspace
+tests/workspace
+.DS_Store
+.idea
+.trae
+.vscode
+uv.lock
+uv.lock
+nul
+swarm-ui/node_modules/
+swarm-ui/.next/

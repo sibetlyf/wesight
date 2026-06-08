@@ -1,0 +1,125 @@
+{
+  "iteration": 1,
+  "skill_name": "web-reader",
+  "timestamp": "2026-03-20",
+  "tests": [
+    {
+      "eval_id": 1,
+      "eval_name": "basic-page-extraction",
+      "description": "Extract title and content from example.com",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-1/with_skill/outputs/result.json",
+        "url_extracted": true,
+        "title_extracted": true,
+        "text_extracted": true,
+        "html_extracted": true,
+        "metadata_included": true,
+        "stealth_enabled": true,
+        "extraction_time_ms": 2654
+      },
+      "without_skill": "N/A - baseline comparison not implemented",
+      "assertions_passed": "4/4",
+      "notes": "Basic extraction working correctly"
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "selector-extraction",
+      "description": "Extract fields using CSS selector",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-1/with_skill/outputs/result_with_selector.json",
+        "selector_used": "h1 -> heading",
+        "field_extracted": "Example Domain",
+        "stealth_enabled": true,
+        "extraction_time_ms": 2814
+      },
+      "assertions_passed": "1/1",
+      "notes": "CSS selector extraction working correctly"
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "news-article-extraction",
+      "description": "Extract news titles from Hacker News",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-2/with_skill/outputs/news_result2.json",
+        "url": "https://news.ycombinator.com",
+        "selector_used": ".titleline > a -> titles",
+        "titles_extracted": 30,
+        "stealth_enabled": true,
+        "extraction_time_ms": 2566
+      },
+      "assertions_passed": "3/3",
+      "notes": "News extraction with selector working correctly. Extracted all headlines."
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "xpath-extraction",
+      "description": "Extract domains using XPath",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-3/with_skill/outputs/xpath_result.json",
+        "xpath_used": "//span[@class='sitestr']",
+        "domains_extracted": ["claude.com", "omar.yt", "astral.sh"],
+        "extraction_time_ms": 2000
+      },
+      "assertions_passed": "1/1",
+      "notes": "XPath extraction working correctly"
+    },
+    {
+      "eval_id": 4,
+      "eval_name": "batch-processing",
+      "description": "Batch process multiple URLs",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-4/with_skill/outputs/batch_result.json",
+        "urls_processed": 3,
+        "success_count": 3,
+        "failure_count": 0,
+        "urls": [
+          "https://example.com",
+          "https://httpbin.org/html",
+          "https://news.ycombinator.com"
+        ]
+      },
+      "assertions_passed": "3/3",
+      "notes": "Batch processing working correctly. All URLs processed successfully."
+    },
+    {
+      "eval_id": 5,
+      "eval_name": "captcha-detection",
+      "description": "Verify CAPTCHA detection logic",
+      "status": "PASS",
+      "with_skill": {
+        "output_file": "test-workspace/iteration-1/eval-5/with_skill/outputs/captcha_result.json",
+        "test_cases": 2,
+        "passed": 2,
+        "normal_pages_no_false_positive": true
+      },
+      "assertions_passed": "2/2",
+      "notes": "CAPTCHA detection working correctly. No false positives on normal pages."
+    }
+  ],
+  "summary": {
+    "total_tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "pass_rate": "100%",
+    "features_tested": [
+      "Basic page extraction",
+      "CSS selector extraction",
+      "XPath extraction",
+      "Batch processing",
+      "CAPTCHA detection",
+      "Stealth mode"
+    ],
+    "dependencies_installed": [
+      "playwright",
+      "playwright-stealth",
+      "httpx"
+    ],
+    "issues_found": [],
+    "recommendations": []
+  }
+}

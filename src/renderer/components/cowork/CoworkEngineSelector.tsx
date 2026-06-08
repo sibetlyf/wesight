@@ -28,6 +28,11 @@ const ENGINE_OPTIONS: Array<{
   hintKey: string;
 }> = [
   {
+    engine: CoworkAgentEngine.ClawRuntime,
+    labelKey: 'coworkAgentEngineClawRuntime',
+    hintKey: 'coworkAgentEngineClawRuntimeHint',
+  },
+  {
     engine: CoworkAgentEngine.OpenClaw,
     labelKey: 'coworkAgentEngineOpenClaw',
     hintKey: 'coworkAgentEngineOpenClawHint',
@@ -76,11 +81,6 @@ const ENGINE_OPTIONS: Array<{
     engine: CoworkAgentEngine.DeepSeekTui,
     labelKey: 'coworkAgentEngineDeepSeekTui',
     hintKey: 'coworkAgentEngineDeepSeekTuiHint',
-  },
-  {
-    engine: CoworkAgentEngine.ClawRuntime,
-    labelKey: 'coworkAgentEngineClawRuntime',
-    hintKey: 'coworkAgentEngineClawRuntimeHint',
   },
 ];
 

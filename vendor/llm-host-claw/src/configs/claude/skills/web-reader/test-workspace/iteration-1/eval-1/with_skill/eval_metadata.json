@@ -1,0 +1,32 @@
+{
+  "eval_id": 1,
+  "eval_name": "basic-page-extraction",
+  "prompt": "Extract the title and all product prices from https://example.com using the web-reader skill. Extract the main heading as 'title' and any price elements as 'prices'.",
+  "assertions": [
+    {
+      "name": "has_url",
+      "description": "Output contains the input URL",
+      "check": "jsonpath",
+      "path": "$.url",
+      "expected": "https://example.com"
+    },
+    {
+      "name": "has_title",
+      "description": "Output contains extracted title",
+      "check": "exists",
+      "path": "$.title"
+    },
+    {
+      "name": "has_fields",
+      "description": "Output contains extracted fields",
+      "check": "exists",
+      "path": "$.fields"
+    },
+    {
+      "name": "has_metadata",
+      "description": "Output contains metadata",
+      "check": "exists",
+      "path": "$.metadata"
+    }
+  ]
+}

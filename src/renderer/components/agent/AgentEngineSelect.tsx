@@ -4,6 +4,7 @@ import React from 'react';
 import { i18nService } from '../../services/i18n';
 
 const ENGINE_OPTIONS: CoworkAgentEngineType[] = [
+  CoworkAgentEngine.ClawRuntime,
   CoworkAgentEngine.YdCowork,
   CoworkAgentEngine.ClaudeCode,
   CoworkAgentEngine.Codex,
@@ -14,7 +15,6 @@ const ENGINE_OPTIONS: CoworkAgentEngineType[] = [
   CoworkAgentEngine.GrokBuild,
   CoworkAgentEngine.QwenCode,
   CoworkAgentEngine.DeepSeekTui,
-  CoworkAgentEngine.ClawRuntime,
 ];
 
 export const getAgentEngineLabel = (engine: CoworkAgentEngineType): string => {

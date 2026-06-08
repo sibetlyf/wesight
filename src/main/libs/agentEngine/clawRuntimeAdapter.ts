@@ -1,13 +1,15 @@
 import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk';
-import { net } from 'electron';
+import { net, app } from 'electron';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { type ChildProcess, spawn } from 'child_process';
+import netModule from 'net';
 
 import { CoworkAgentEngine } from '../../../shared/cowork/constants';
 import type { CoworkMessage, CoworkMessageMetadata, CoworkStore } from '../../coworkStore';
-import { resolveRawApiConfig } from '../claudeSettings';
+import { resolveCurrentApiConfig } from '../claudeSettings';
 import { type ClawNormalizedEvent, type ClawRawEvent, normalizeClawEvent } from './clawRuntimeEvent';
 import type { CoworkContinueOptions, CoworkRuntime, CoworkRuntimeEvents, CoworkStartOptions } from './types';
 
@@ -31,14 +33,47 @@ const truncateLargeContent = (content: string, maxChars: number): string => {
   return `${content.slice(0, maxChars)}${CONTENT_TRUNCATED_HINT}`;
 };
 
+const checkPortReady = (port: number, host = '127.0.0.1', timeout = 500): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const socket = new netModule.Socket();
+    let isSettled = false;
+
+    socket.setTimeout(timeout);
+    socket.once('connect', () => {
+      if (!isSettled) {
+        isSettled = true;
+        socket.destroy();
+        resolve(true);
+      }
+    });
+
+    const fail = () => {
+      if (!isSettled) {
+        isSettled = true;
+        socket.destroy();
+        resolve(false);
+      }
+    };
+
+    socket.once('timeout', fail);
+    socket.once('error', fail);
+    socket.connect(port, host);
+  });
+};
+
 export class ClawRuntimeAdapter extends EventEmitter implements CoworkRuntime {
   private readonly store: CoworkStore;
   private readonly activeSessions = new Map<string, ActiveClawSession>();
   private readonly stoppedSessions = new Set<string>();
 
+  private momaProcess: ChildProcess | null = null;
+
   constructor(deps: ClawRuntimeAdapterDeps) {
     super();
     this.store = deps.store;
+    process.on('exit', () => {
+      this.killMomaService();
+    });
   }
 
   override on<U extends keyof CoworkRuntimeEvents>(
@@ -112,7 +147,27 @@ export class ClawRuntimeAdapter extends EventEmitter implements CoworkRuntime {
       throw new Error(`Session ${sessionId} not found`);
     }
 
+    // Resolve target server port from settings
+    const config = this.store.getConfig();
+    const serverUrl = config.clawServerUrl?.trim() || 'http://127.0.0.1:3019';
+    let port = 3019;
+    try {
+      const parsedUrl = new URL(serverUrl);
+      if (parsedUrl.port) {
+        port = parseInt(parsedUrl.port, 10);
+      }
+    } catch {
+      // use default 3019
+    }
+
     this.store.updateSession(sessionId, { status: 'running' });
+
+    try {
+      await this.ensureMomaService(port);
+    } catch (err: any) {
+      this.handleError(sessionId, `Failed to launch Moma CLI backend: ${err.message || String(err)}`);
+      return;
+    }
 
     if (shouldAddUserMessage) {
       const metadata: Record<string, unknown> = {};
@@ -158,7 +213,7 @@ export class ClawRuntimeAdapter extends EventEmitter implements CoworkRuntime {
         providerName: options.runtimeSnapshot.providerKey || options.runtimeSnapshot.providerName,
       }
       : undefined;
-    const resolved = resolveRawApiConfig(apiConfigOverride);
+    const resolved = resolveCurrentApiConfig('local', apiConfigOverride);
     if (resolved.config?.apiKey) {
       headers['X-Api-Key'] = resolved.config.apiKey;
       headers['X-Authorization'] = `Bearer ${resolved.config.apiKey}`;
@@ -196,8 +251,6 @@ export class ClawRuntimeAdapter extends EventEmitter implements CoworkRuntime {
       extra: Object.keys(extra).length > 0 ? extra : null,
     };
 
-    const config = this.store.getConfig();
-    const serverUrl = config.clawServerUrl?.trim() || 'http://127.0.0.1:8000';
     const url = `${serverUrl.replace(/\/+$/, '')}/api/orchestrator/run`;
 
     try {
@@ -382,5 +435,75 @@ export class ClawRuntimeAdapter extends EventEmitter implements CoworkRuntime {
     if (this.store.getSession(sessionId)?.status === 'error') return;
     this.store.updateSession(sessionId, { status: 'error' });
     this.emit('error', sessionId, error);
+  }
+
+  private async ensureMomaService(port: number): Promise<void> {
+    const isReady = await checkPortReady(port);
+    if (isReady) {
+      console.log(`[MomaCLI] Port ${port} is already listening. Reuse existing service.`);
+      return;
+    }
+
+    if (this.momaProcess) {
+      return;
+    }
+
+    console.log(`[MomaCLI] Moma service is offline. Booting serve on port ${port}...`);
+    const userDataPath = app.getPath('userData');
+    const userRuntimeDir = path.join(userDataPath, 'runtimes', 'llm-host-claw');
+    const devDir = 'G:\\MOMA\\moma_cli\\llm-host-claw';
+
+    let repoDir = '';
+    if (fs.existsSync(path.join(userRuntimeDir, 'pyproject.toml'))) {
+      repoDir = userRuntimeDir;
+    } else if (fs.existsSync(path.join(devDir, 'pyproject.toml'))) {
+      repoDir = devDir;
+    } else {
+      throw new Error('Moma CLI backend is not installed. Please run "Install CLI" in settings first.');
+    }
+    const isWindows = process.platform === 'win32';
+
+    const shell = isWindows ? 'powershell.exe' : '/bin/sh';
+    const shellArgs = isWindows
+      ? ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command']
+      : ['-c'];
+
+    const env = {
+      ...process.env,
+      PYTHONPATH: 'src',
+    };
+
+    const runCmd = `uv run python -m moma_cli serve --host 127.0.0.1 --port ${port}`;
+
+    this.momaProcess = spawn(shell, [...shellArgs, runCmd], {
+      cwd: repoDir,
+      env,
+      stdio: 'ignore',
+    });
+
+    this.momaProcess.on('exit', (code) => {
+      console.log(`[MomaCLI] Service process exited with code ${code}`);
+      this.momaProcess = null;
+    });
+
+    const startLimit = Date.now() + 15000;
+    while (Date.now() < startLimit) {
+      const ready = await checkPortReady(port);
+      if (ready) {
+        console.log(`[MomaCLI] Service successfully booted and verified on port ${port}.`);
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+
+    throw new Error('Timeout waiting for Moma CLI backend service to start.');
+  }
+
+  private killMomaService(): void {
+    if (this.momaProcess) {
+      console.log('[MomaCLI] Killing hosted backend service process...');
+      this.momaProcess.kill('SIGINT');
+      this.momaProcess = null;
+    }
   }
 }

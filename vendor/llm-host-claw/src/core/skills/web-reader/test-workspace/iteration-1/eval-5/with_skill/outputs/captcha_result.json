@@ -1,0 +1,16 @@
+[
+  {
+    "url": "https://example.com",
+    "description": "Normal page",
+    "expected_captcha": false,
+    "detected": false,
+    "status": "PASS"
+  },
+  {
+    "url": "https://news.ycombinator.com",
+    "description": "Normal site (should not detect CAPTCHA)",
+    "expected_captcha": false,
+    "detected": false,
+    "status": "PASS"
+  }
+]

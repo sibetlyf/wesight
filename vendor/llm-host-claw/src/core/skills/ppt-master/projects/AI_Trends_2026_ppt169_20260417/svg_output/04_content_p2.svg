@@ -1,0 +1,82 @@
+<svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="headerGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Header -->
+  <rect width="1280" height="100" fill="url(#headerGrad2)"/>
+  <text x="80" y="55" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="36" font-weight="bold">多模态 AI 应用</text>
+  <rect x="80" y="70" width="80" height="4" fill="#00d4ff" rx="2"/>
+  
+  <!-- Main Content -->
+  <g transform="translate(80, 150)">
+    <!-- Left: Text + Image -->
+    <rect x="0" y="0" width="520" height="450" rx="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+    <text x="260" y="50" text-anchor="middle" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold">
+      核心能力整合
+    </text>
+    
+    <g transform="translate(40, 80)">
+      <circle cx="30" cy="30" r="12" fill="#0066cc"/>
+      <text x="30" y="36" text-anchor="middle" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold">1</text>
+      <text x="60" y="35" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold">文本 + 图像理解</text>
+      <text x="60" y="60" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">智能文档分析与生成</text>
+    </g>
+    
+    <g transform="translate(40, 150)">
+      <circle cx="30" cy="30" r="12" fill="#00d4ff"/>
+      <text x="30" y="36" text-anchor="middle" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold">2</text>
+      <text x="60" y="35" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold">音频 + 视频处理</text>
+      <text x="60" y="60" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">实时转录与内容理解</text>
+    </g>
+    
+    <g transform="translate(40, 220)">
+      <circle cx="30" cy="30" r="12" fill="#1a1a2e"/>
+      <text x="30" y="36" text-anchor="middle" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="14" font-weight="bold">3</text>
+      <text x="60" y="35" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="18" font-weight="bold">跨模态推理</text>
+      <text x="60" y="60" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">视觉问答与复杂推理</text>
+    </g>
+    
+    <!-- Right: Application Scenarios -->
+    <rect x="580" y="0" width="520" height="450" rx="16" fill="#1a1a2e" stroke="#0066cc" stroke-width="2"/>
+    <text x="840" y="50" text-anchor="middle" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold">
+      企业应用场景
+    </text>
+    
+    <g transform="translate(620, 80)">
+      <rect x="0" y="0" width="200" height="100" rx="8" fill="#0066cc" opacity="0.2"/>
+      <text x="100" y="40" text-anchor="middle" fill="#00d4ff" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">客户服务</text>
+      <text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="12">智能客服 + 情绪分析</text>
+    </g>
+    
+    <g transform="translate(860, 80)">
+      <rect x="0" y="0" width="200" height="100" rx="8" fill="#00d4ff" opacity="0.2"/>
+      <text x="100" y="40" text-anchor="middle" fill="#00d4ff" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">内容创作</text>
+      <text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="12">营销素材自动生成</text>
+    </g>
+    
+    <g transform="translate(620, 210)">
+      <rect x="0" y="0" width="200" height="100" rx="8" fill="#0066cc" opacity="0.2"/>
+      <text x="100" y="40" text-anchor="middle" fill="#00d4ff" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">培训教育</text>
+      <text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="12">交互式学习体验</text>
+    </g>
+    
+    <g transform="translate(860, 210)">
+      <rect x="0" y="0" width="200" height="100" rx="8" fill="#00d4ff" opacity="0.2"/>
+      <text x="100" y="40" text-anchor="middle" fill="#00d4ff" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">数据分析</text>
+      <text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="12">多源数据融合分析</text>
+    </g>
+    
+    <g transform="translate(740, 340)">
+      <rect x="0" y="0" width="200" height="100" rx="8" fill="#1a1a2e" stroke="#0066cc" stroke-width="2"/>
+      <text x="100" y="40" text-anchor="middle" fill="#00d4ff" font-family="Microsoft YaHei, sans-serif" font-size="16" font-weight="bold">产品研发</text>
+      <text x="100" y="65" text-anchor="middle" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="12">AI 辅助设计与测试</text>
+    </g>
+  </g>
+  
+  <!-- Page Number -->
+  <text x="1200" y="700" text-anchor="end" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="14">4 / 10</text>
+</svg>

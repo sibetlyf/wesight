@@ -1,6 +1,9 @@
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import os from 'os';
+import { app } from 'electron';
+import fs from 'fs';
+import path from 'path';
 
 import type { CliAppType, ExternalAgentEnvironmentSnapshot } from './externalAgentEnvironment';
 import { getExternalAgentEnvironmentSnapshot } from './externalAgentEnvironment';
@@ -138,6 +141,16 @@ const INSTALL_TARGETS: Record<CliAppType, InstallTarget> = {
       },
     ],
   },
+  moma_cli: {
+    appType: 'moma_cli',
+    displayName: 'Moma CLI',
+    command: 'moma',
+    methods: [
+      {
+        id: 'bootstrap-moma',
+      },
+    ],
+  },
 };
 
 const quoteForShell = (value: string): string => {
@@ -204,6 +217,21 @@ const buildInstallScript = (target: InstallTarget): string => {
         'Write-Host "__WESIGHT_VERSION__=$version"',
       ].join('\r\n');
     }
+    if (target.appType === 'moma_cli') {
+      const repoDir = path.join(app.getPath('userData'), 'runtimes', 'llm-host-claw');
+      return [
+        `cd "${repoDir}"`,
+        `Write-Host "Running bootstrap-moma.ps1 in ${repoDir}"`,
+        `Write-Host "__WESIGHT_INSTALL_METHOD__=bootstrap-moma"`,
+        `.\\bootstrap-moma.ps1 -WithBrowsers -Dev`,
+        `$cmdPath = (Get-Command moma -ErrorAction SilentlyContinue).Source`,
+        `if (-not $cmdPath) {`,
+        `  $cmdPath = "uv run python -m moma_cli"`,
+        `}`,
+        `Write-Host "__WESIGHT_BINARY_PATH__=$cmdPath"`,
+        `Write-Host "__WESIGHT_VERSION__=1.0.0"`,
+      ].join('\r\n');
+    }
 
     throw new Error(`Automatic installation is not available for ${target.displayName} on Windows.`);
   }
@@ -233,6 +261,20 @@ const buildInstallScript = (target: InstallTarget): string => {
       'echo "__WESIGHT_BINARY_PATH__=${BINARY_PATH}"',
       'VERSION_OUTPUT=$({ "$BINARY_PATH" --version 2>&1 || true; } | head -n 1)',
       'echo "__WESIGHT_VERSION__=${VERSION_OUTPUT}"',
+    ].join('\n');
+  }
+
+  if (target.appType === 'moma_cli') {
+    const repoDir = path.join(app.getPath('userData'), 'runtimes', 'llm-host-claw');
+    return [
+      `set -e`,
+      `cd "${repoDir}"`,
+      `echo "__WESIGHT_INSTALL_METHOD__=bootstrap-moma"`,
+      `chmod +x bootstrap-moma.sh`,
+      `./bootstrap-moma.sh --with-browsers --dev`,
+      `BINARY_PATH="uv run python -m moma_cli"`,
+      `echo "__WESIGHT_BINARY_PATH__=\${BINARY_PATH}"`,
+      `echo "__WESIGHT_VERSION__=1.0.0"`,
     ].join('\n');
   }
 
@@ -305,6 +347,43 @@ export class ExternalAgentCliInstaller extends EventEmitter {
     const target = INSTALL_TARGETS[appType];
     const isWindows = process.platform === 'win32';
     const isMacOS = process.platform === 'darwin';
+
+    if (appType === 'moma_cli') {
+      const userDataPath = app.getPath('userData');
+      const targetDir = path.join(userDataPath, 'runtimes', 'llm-host-claw');
+      const sourceDir = path.join(app.getAppPath(), 'vendor', 'llm-host-claw');
+
+      this.emitProgress({
+        appType,
+        phase: 'starting',
+        message: 'Releasing Moma CLI workspace files...',
+      });
+
+      try {
+        if (!fs.existsSync(path.dirname(targetDir))) {
+          fs.mkdirSync(path.dirname(targetDir), { recursive: true });
+        }
+        if (fs.existsSync(targetDir)) {
+          fs.rmSync(targetDir, { recursive: true, force: true });
+        }
+        fs.cpSync(sourceDir, targetDir, { recursive: true, force: true });
+        console.log(`[MomaCLI] Successfully released assets from ${sourceDir} to ${targetDir}`);
+      } catch (err: any) {
+        const errorMsg = `Failed to release Moma CLI: ${err.message || String(err)}`;
+        console.error(errorMsg);
+        this.emitProgress({
+          appType,
+          phase: 'error',
+          message: errorMsg,
+        });
+        return {
+          success: false,
+          appType,
+          error: errorMsg,
+          snapshot: getExternalAgentEnvironmentSnapshot(),
+        };
+      }
+    }
     if (!isWindows && !isMacOS) {
       const message = 'Automatic CLI installation currently supports macOS and Windows only.';
       this.emitProgress({

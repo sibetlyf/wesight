@@ -2115,6 +2115,121 @@ async function handleResponsesStreamResponse(
   res.end();
 }
 
+async function handleOpenAICompatNonStreamingAsStreaming(
+  upstreamResponse: any,
+  res: http.ServerResponse
+): Promise<void> {
+  if (upstreamResponse.status !== 200) {
+    res.writeHead(upstreamResponse.status, {
+      'Content-Type': upstreamResponse.headers.get('content-type') || 'application/json',
+    });
+    const text = await upstreamResponse.text();
+    res.end(text);
+    return;
+  }
+
+  if (!upstreamResponse.body) {
+    writeJSON(res, 502, createAnthropicErrorBody('Upstream returned empty body', 'api_error'));
+    return;
+  }
+
+  const reader = upstreamResponse.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let accumulatedContent = '';
+  let accumulatedReasoning = '';
+  let responseId = '';
+  let responseModel = '';
+  let finishReason: string | null = null;
+  let usage: any = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = findSSEPacketBoundary(buffer);
+    while (boundary) {
+      const packet = buffer.slice(0, boundary.index);
+      buffer = buffer.slice(boundary.index + boundary.separatorLength);
+
+      const lines = packet.split(/\r?\n/);
+      const dataLines: string[] = [];
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          dataLines.push(line.slice(5).trimStart());
+        }
+      }
+
+      const payload = dataLines.join('\n');
+      if (!payload) {
+        boundary = findSSEPacketBoundary(buffer);
+        continue;
+      }
+
+      if (payload === '[DONE]') {
+        break;
+      }
+
+      try {
+        const parsed = JSON.parse(payload);
+        if (parsed.id && !responseId) responseId = parsed.id;
+        if (parsed.model && !responseModel) responseModel = parsed.model;
+        if (parsed.usage) usage = parsed.usage;
+
+        const choice = parsed.choices?.[0];
+        if (choice) {
+          if (choice.delta?.content) {
+            accumulatedContent += choice.delta.content;
+          }
+          if (choice.delta?.reasoning_content) {
+            accumulatedReasoning += choice.delta.reasoning_content;
+          }
+          if (choice.finish_reason) {
+            finishReason = choice.finish_reason;
+          }
+        }
+      } catch {
+        // Ignore malformed chunks
+      }
+
+      boundary = findSSEPacketBoundary(buffer);
+    }
+  }
+
+  const responseObj: any = {
+    id: responseId || `chatcmpl-${Date.now()}`,
+    object: 'chat.completion',
+    created: Math.floor(Date.now() / 1000),
+    model: responseModel || 'gpt-5.4',
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: 'assistant',
+          content: accumulatedContent,
+        },
+        finish_reason: finishReason || 'stop',
+      }
+    ]
+  };
+
+  if (accumulatedReasoning) {
+    responseObj.choices[0].message.reasoning_content = accumulatedReasoning;
+  }
+
+  if (usage) {
+    responseObj.usage = usage;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'application/json',
+  });
+  res.end(JSON.stringify(responseObj));
+}
+
 async function handleChatCompletionsStreamResponse(
   upstreamResponse: Response,
   res: http.ServerResponse
@@ -2374,6 +2489,18 @@ async function handleRequest(
       writeJSON(res, 400, createAnthropicErrorBody(message, 'invalid_request_error'));
       return;
     }
+    let isStream = false;
+    let parsedBody: any = null;
+    try {
+      parsedBody = JSON.parse(body);
+      isStream = parsedBody && parsedBody.stream === true;
+    } catch {
+      // Ignore
+    }
+    if (!isStream && parsedBody) {
+      parsedBody.stream = true;
+      body = JSON.stringify(parsedBody);
+    }
     const upstreamHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -2426,23 +2553,27 @@ async function handleRequest(
         }
       }
       // Pipe response back
-      res.writeHead(upstreamResponse.status, {
-        'Content-Type': upstreamResponse.headers.get('content-type') || 'application/json',
-        'Transfer-Encoding': upstreamResponse.headers.get('transfer-encoding') || '',
-      });
-      if (upstreamResponse.body) {
-        const reader = upstreamResponse.body.getReader();
-        const pump = async () => {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) { res.end(); return; }
-            res.write(Buffer.from(value));
-          }
-        };
-        await pump();
+      if (!isStream) {
+        await handleOpenAICompatNonStreamingAsStreaming(upstreamResponse, res);
       } else {
-        const text = await upstreamResponse.text();
-        res.end(text);
+        res.writeHead(upstreamResponse.status, {
+          'Content-Type': upstreamResponse.headers.get('content-type') || 'application/json',
+          'Transfer-Encoding': upstreamResponse.headers.get('transfer-encoding') || '',
+        });
+        if (upstreamResponse.body) {
+          const reader = upstreamResponse.body.getReader();
+          const pump = async () => {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) { res.end(); return; }
+              res.write(Buffer.from(value));
+            }
+          };
+          await pump();
+        } else {
+          const text = await upstreamResponse.text();
+          res.end(text);
+        }
       }
     } catch (proxyError) {
       console.error('[CoworkProxy] OpenAI passthrough error:', proxyError);

@@ -436,6 +436,12 @@ export class SqliteStore {
       this.db
         .prepare("UPDATE cowork_config SET value = ?, updated_at = ? WHERE key = 'agentEngine' AND value = ?")
         .run(DEFAULT_AGENT_ENGINE, Date.now(), CoworkAgentEngine.YdCowork);
+      this.db
+        .prepare("UPDATE cowork_config SET value = 'moma_cli', updated_at = ? WHERE key = 'agentEngine' AND value = 'claw_runtime'")
+        .run(Date.now());
+      this.db
+        .prepare("UPDATE agents SET agent_engine = 'moma_cli', updated_at = ? WHERE agent_engine = 'claw_runtime'")
+        .run(Date.now());
       this.db.exec(
         `UPDATE cowork_sessions SET execution_mode = 'local' WHERE execution_mode = 'container';`,
       );

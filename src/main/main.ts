@@ -1258,6 +1258,7 @@ const getEngineSnapshotLabel = (engine: CoworkAgentEngine): string => {
   if (engine === CoworkAgentEngineValue.GrokBuild) return 'Grok Build';
   if (engine === CoworkAgentEngineValue.QwenCode) return 'Qwen Code';
   if (engine === CoworkAgentEngineValue.DeepSeekTui) return 'DeepSeek-TUI';
+  if (engine === CoworkAgentEngineValue.ClawRuntime) return 'Moma CLI';
   return 'Cowork';
 };
 
@@ -1672,6 +1673,7 @@ const isExternalAgentProviderAppType = (value: unknown): value is ExternalAgentP
   || value === 'grok'
   || value === 'qwen'
   || value === 'deepseek_tui'
+  || value === 'moma_cli'
 );
 
 const getMergedExternalAgentEnvironmentSnapshot = () => {

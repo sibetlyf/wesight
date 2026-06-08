@@ -1,0 +1,75 @@
+<svg viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066cc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="720" fill="url(#bgGradient)"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1280" height="80" fill="#1e3a5f"/>
+  <text x="60" y="52" font-family="Microsoft YaHei, Arial, sans-serif" font-size="24" fill="#ffffff">大模型进化方向</text>
+  
+  <!-- Title -->
+  <text x="640" y="150" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="36" font-weight="bold" fill="#1e3a5f">
+    高效与专业化并行发展
+  </text>
+  
+  <!-- Card 1 -->
+  <g transform="translate(120, 210)">
+    <rect x="0" y="0" width="480" height="220" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))"/>
+    <rect x="0" y="0" width="480" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="bold" fill="#1e3a5f">📊 模型效率提升</text>
+    <text x="30" y="85" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 参数量减少 10 倍，性能提升 3 倍
+    </text>
+    <text x="30" y="115" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 推理成本降低 80%
+    </text>
+    <text x="30" y="145" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 训练能耗减少 60%
+    </text>
+    <text x="30" y="185" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">MoE 架构 + 稀疏化技术</text>
+  </g>
+  
+  <!-- Card 2 -->
+  <g transform="translate(680, 210)">
+    <rect x="0" y="0" width="480" height="220" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))"/>
+    <rect x="0" y="0" width="480" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="50" font-family="Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="bold" fill="#1e3a5f">🎯 领域专业化</text>
+    <text x="30" y="85" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 医疗、法律、金融垂直模型
+    </text>
+    <text x="30" y="115" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 行业知识深度整合
+    </text>
+    <text x="30" y="145" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 准确率提升 40%+
+    </text>
+    <text x="30" y="185" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">Vertical LLMs for enterprise</text>
+  </g>
+  
+  <!-- Card 3 -->
+  <g transform="translate(400, 470)">
+    <rect x="0" y="0" width="480" height="180" rx="12" fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))"/>
+    <rect x="0" y="0" width="480" height="6" rx="3" fill="url(#blueGradient)"/>
+    <text x="30" y="45" font-family="Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="bold" fill="#1e3a5f">🧠 推理能力突破</text>
+    <text x="30" y="80" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 复杂逻辑推理能力提升 50%
+    </text>
+    <text x="30" y="110" font-family="Arial, sans-serif" font-size="16" fill="#475569" width="420">
+      • 多步骤问题解决能力增强
+    </text>
+    <text x="30" y="140" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">System 2 thinking integration</text>
+  </g>
+  
+  <!-- Page Number -->
+  <text x="1220" y="700" text-anchor="end" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">4 / 10</text>
+</svg>

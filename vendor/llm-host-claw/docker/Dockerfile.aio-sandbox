@@ -1,0 +1,53 @@
+FROM artifact.nc.rdcloud.4c.hq.cmcc:80/znm-docker-dev/agent-infra/sandbox:1.0.0.152
+
+ENV JIUTIAN_BASE_URL="https://jiutian.10086.cn/largemodel/moma/api/v3/chat/completions" \
+    JIUTIAN_MODELS="kimi-k2-5-thinking,glm-5-fp8,qwen3.5-397B-fp8,jiutian-lan-35b" \
+    JIUTIAN_BROWSER_MODEL="qwen3.5-397B-fp8" \
+    ROUTER_DEFAULT="jiutian,qwen3.5-397B-fp8" \
+    NODE=production
+
+RUN echo "deb [trusted=yes] http://artifact.nc.rdcloud.4c.hq.cmcc:80/artifactory/debian-remote-ubuntu jammy main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://artifact.nc.rdcloud.4c.hq.cmcc:80/artifactory/debian-remote-ubuntu jammy-updates main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://artifact.nc.rdcloud.4c.hq.cmcc:80/artifactory/debian-remote-ubuntu jammy-security main restricted universe multiverse" >> /etc/apt/sources.list && \
+    echo "deb [trusted=yes] http://artifact.nc.rdcloud.4c.hq.cmcc:80/artifactory/debian-remote-ubuntu jammy-backports main restricted universe multiverse" >> /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y \
+    libtesseract-dev tesseract-ocr tesseract-ocr-chi-sim \
+    ripgrep \
+    tesseract-ocr-eng \
+    libjpeg-dev \
+    libpng-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install
+RUN npm install -g \
+    --registry http://artifact.nc.rdcloud.4c.hq.cmcc:80/artifactory/api/npm/npm-taobao \
+    --no-audit \
+    pnpm \
+    edgeone \
+    @anthropic-ai/claude-code \
+    @musistudio/claude-code-router \
+    docx \
+    pptxgenjs \
+    && npm cache clean --force \
+    && mkdir -p /root/.claude-code-router/plugins
+
+# Install bun
+RUN curl -fsSL https://bun.sh/install | bash && \
+    mv /root/.bun/bin/bun /usr/local/bin/bun && \
+    ln -s /usr/local/bin/bun /usr/local/bin/bunx && \
+    rm -rf /root/.bun
+RUN bunx oh-my-opencode install --no-tui --claude=no --gemini=no --copilot=no
+
+# Create gem
+RUN groupadd --gid ${USER_GID} ${USER} && \
+    useradd --uid ${USER_UID} --gid ${USER_GID} --shell /bin/bash --create-home ${USER}
+
+COPY src/configs/claude/ /root/.claude/
+COPY docker/.claude-code-router/config.json /root/.claude-code-router/config.json
+COPY docker/run.sh /opt/gem/run.sh
+
+RUN chmod +x /opt/gem/run.sh
+RUN timeout 5s opencode serve || [ $? -eq 124 ]
+
+USER root

@@ -94,6 +94,11 @@ const COWORK_AGENT_ENGINE_OPTIONS: Array<{
   hintKey: string;
 }> = [
   {
+    value: CoworkAgentEngineValue.ClawRuntime,
+    labelKey: 'coworkAgentEngineClawRuntime',
+    hintKey: 'coworkAgentEngineClawRuntimeHint',
+  },
+  {
     value: CoworkAgentEngineValue.OpenClaw,
     labelKey: 'coworkAgentEngineOpenClaw',
     hintKey: 'coworkAgentEngineOpenClawHint',
@@ -142,11 +147,6 @@ const COWORK_AGENT_ENGINE_OPTIONS: Array<{
     value: CoworkAgentEngineValue.DeepSeekTui,
     labelKey: 'coworkAgentEngineDeepSeekTui',
     hintKey: 'coworkAgentEngineDeepSeekTuiHint',
-  },
-  {
-    value: CoworkAgentEngineValue.ClawRuntime,
-    labelKey: 'coworkAgentEngineClawRuntime',
-    hintKey: 'coworkAgentEngineClawRuntimeHint',
   },
 ];
 
@@ -988,6 +988,7 @@ const Settings: React.FC<SettingsProps> = ({ onClose, initialTab, notice, notice
     grok: '',
     qwen: '',
     deepseek_tui: '',
+    moma_cli: '',
   });
   const [agentProviderLists, setAgentProviderLists] = useState<Partial<Record<ExternalAgentProviderAppType, ExternalAgentProviderListResult>>>({});
   const [agentProviderLoadingAppType, setAgentProviderLoadingAppType] = useState<ExternalAgentProviderAppType | null>(null);

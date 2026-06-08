@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  
+  <rect width="1280" height="100" fill="url(#headerGrad)" />
+  <text x="80" y="55" fill="#ffffff" font-family="Microsoft YaHei, sans-serif" font-size="36" font-weight="bold">
+    大模型进化方向
+  </text>
+  <path fill="#00d4ff" d="M82,70 H158 A2,2 0 0 1 160,72 V72 A2,2 0 0 1 158,74 H82 A2,2 0 0 1 80,72 V72 A2,2 0 0 1 82,70 Z" />
+  
+  
+  <g transform="translate(80, 150)">
+    
+    <g>
+      <path fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="2" d="M12,0 H328 A12,12 0 0 1 340,12 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V12 A12,12 0 0 1 12,0 Z" />
+      <path fill="#0066cc" d="M12,0 H328 A12,6 0 0 1 340,6 V6 A12,6 0 0 1 328,12 H12 A12,6 0 0 1 0,6 V6 A12,6 0 0 1 12,0 Z" />
+      <path fill="none" stroke="#e2e8f0" stroke-width="2" d="M12,8 H328 A12,12 0 0 1 340,20 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V20 A12,12 0 0 1 12,8 Z" />
+      
+      <text x="170" y="60" text-anchor="middle" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="22" font-weight="bold">小型化与高效化</text>
+      <text x="170" y="95" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        参数量减少 90%
+      </text>
+      <text x="170" y="120" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        推理成本降低 80%
+      </text>
+    </g>
+    
+    
+    <g transform="translate(380, 0)">
+      <path fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="2" d="M12,0 H328 A12,12 0 0 1 340,12 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V12 A12,12 0 0 1 12,0 Z" />
+      <path fill="#00d4ff" d="M12,0 H328 A12,6 0 0 1 340,6 V6 A12,6 0 0 1 328,12 H12 A12,6 0 0 1 0,6 V6 A12,6 0 0 1 12,0 Z" />
+      <path fill="none" stroke="#e2e8f0" stroke-width="2" d="M12,8 H328 A12,12 0 0 1 340,20 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V20 A12,12 0 0 1 12,8 Z" />
+      
+      <text x="170" y="60" text-anchor="middle" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="22" font-weight="bold">领域专用模型</text>
+      <text x="170" y="95" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        金融、医疗、法律垂直化
+      </text>
+      <text x="170" y="120" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        准确率提升 40%+
+      </text>
+    </g>
+    
+    
+    <g transform="translate(760, 0)">
+      <path fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="2" d="M12,0 H328 A12,12 0 0 1 340,12 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V12 A12,12 0 0 1 12,0 Z" />
+      <path fill="#1a1a2e" d="M12,0 H328 A12,6 0 0 1 340,6 V6 A12,6 0 0 1 328,12 H12 A12,6 0 0 1 0,6 V6 A12,6 0 0 1 12,0 Z" />
+      <path fill="none" stroke="#e2e8f0" stroke-width="2" d="M12,8 H328 A12,12 0 0 1 340,20 V148 A12,12 0 0 1 328,160 H12 A12,12 0 0 1 0,148 V20 A12,12 0 0 1 12,8 Z" />
+      
+      <text x="170" y="60" text-anchor="middle" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="22" font-weight="bold">推理能力强化</text>
+      <text x="170" y="95" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        多步逻辑推理
+      </text>
+      <text x="170" y="120" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">
+        数学与科学问题解决
+      </text>
+    </g>
+  </g>
+  
+  
+  <g transform="translate(80, 360)">
+    <path fill="#f8fafc" stroke="#e2e8f0" stroke-width="2" d="M16,0 H1104 A16,16 0 0 1 1120,16 V224 A16,16 0 0 1 1104,240 H16 A16,16 0 0 1 0,224 V16 A16,16 0 0 1 16,0 Z" />
+    
+    <text x="560" y="50" text-anchor="middle" fill="#1f2937" font-family="Microsoft YaHei, sans-serif" font-size="24" font-weight="bold">
+      2026 年关键指标预测
+    </text>
+    
+    
+    <circle cx="200" cy="130" r="50" fill="#0066cc" opacity="0.1" />
+    <text x="200" y="125" text-anchor="middle" fill="#0066cc" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold">70%</text>
+    <text x="200" y="155" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">企业采用小型模型</text>
+    
+    
+    <circle cx="560" cy="130" r="50" fill="#00d4ff" opacity="0.1" />
+    <text x="560" y="125" text-anchor="middle" fill="#0066cc" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold">50+</text>
+    <text x="560" y="155" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">领域专用模型数量</text>
+    
+    
+    <circle cx="920" cy="130" r="50" fill="#1a1a2e" opacity="0.1" />
+    <text x="920" y="125" text-anchor="middle" fill="#1a1a2e" font-family="Microsoft YaHei, sans-serif" font-size="32" font-weight="bold">3x</text>
+    <text x="920" y="155" text-anchor="middle" fill="#6b7280" font-family="Microsoft YaHei, sans-serif" font-size="14">推理速度提升</text>
+  </g>
+  
+  
+  <text x="1200" y="700" text-anchor="end" fill="#9ca3af" font-family="Microsoft YaHei, sans-serif" font-size="14">3 / 10</text>
+</svg>

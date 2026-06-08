@@ -1,0 +1,20 @@
+[
+  {
+    "url": "https://example.com",
+    "title": "Example Domain",
+    "success": true,
+    "text_length": 129
+  },
+  {
+    "url": "https://httpbin.org/html",
+    "title": "",
+    "success": true,
+    "text_length": 3595
+  },
+  {
+    "url": "https://news.ycombinator.com",
+    "title": "Hacker News",
+    "success": true,
+    "text_length": 4169
+  }
+]

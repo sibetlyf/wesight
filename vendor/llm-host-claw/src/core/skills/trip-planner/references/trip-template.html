@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出行方案时间规划 - 大同御馨园 (12:00到达)</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            --timeline-line: #cbd5e1;
+
+            /* Visual Scheme */
+            --color-blue: #3b82f6;
+            /* Home -> Station */
+            --color-grey: #e5e7eb;
+            /* Wait */
+            --color-green: #22c55e;
+            /* Train */
+            --color-purple: #a855f7;
+            /* Station -> Dest */
+
+            --text-on-colored: #ffffff;
+            --text-on-grey: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 40px;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 32px;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Chart Area */
+        .chart-container {
+            position: relative;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        /* Calculated widths */
+        :root {
+            --left-col-width: 280px;
+            --gap-width: 40px;
+        }
+
+        .timeline-header {
+            display: flex;
+            height: 30px;
+            margin-left: calc(var(--left-col-width) + var(--gap-width));
+            position: relative;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .time-mark {
+            position: absolute;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--text-secondary);
+            top: -2px;
+        }
+
+        .time-mark::after {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            width: 1px;
+            height: 1000px;
+            background-color: var(--timeline-line);
+            border-left: 1px dashed var(--timeline-line);
+            z-index: 0;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Plan Row */
+        .plan-row {
+            display: flex;
+            margin-bottom: 32px;
+            position: relative;
+            align-items: stretch;
+            height: 100px;
+        }
+
+        /* Information Card (Left) */
+        .plan-info-card {
+            width: var(--left-col-width);
+            flex-shrink: 0;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-right: var(--gap-width);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .plan-title {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 12px;
+            color: #0f172a;
+            white-space: normal;
+            line-height: 1.4;
+        }
+
+        .plan-metric {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .plan-metric strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .plan-price {
+            font-size: 13px;
+            font-weight: 600;
+            color: #16a34a;
+        }
+
+        .plan-tag {
+            display: inline-block;
+            margin-top: auto;
+            font-size: 11px;
+            color: #ea580c;
+            background: #ffedd5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            align-self: flex-start;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Timeline Track (Right) */
+        .timeline-track {
+            flex-grow: 1;
+            position: relative;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Segments */
+        .segment {
+            position: absolute;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+
+        .segment:hover {
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        .segment-content {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow: hidden;
+            padding: 0 8px;
+        }
+
+        .segment-icon {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+            flex-shrink: 0;
+        }
+
+        .segment.type-wait {
+            background-color: var(--color-grey);
+            color: var(--text-on-grey);
+            border: 1px dashed #cbd5e1;
+        }
+
+        /* Node Labels */
+        .node-label-group {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 6;
+        }
+
+        .node-time {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-blue);
+            margin-bottom: 20px;
+        }
+
+        .node-location {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .node-icon {
+            width: 16px;
+            height: 16px;
+            fill: #94a3b8;
+            margin-bottom: 2px;
+        }
+
+        .node-label-group.end-node .node-time {
+            color: #16a34a;
+        }
+
+        .text-red {
+            color: #ef4444;
+        }
+
+        /* Legend */
+        .legend-area {
+            margin-top: 10px;
+            display: flex;
+            gap: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            margin-left: calc(var(--left-col-width) + var(--gap-width));
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 100;
+            transition: opacity 0.15s;
+            max-width: 260px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Summary Section */
+        .summary-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .summary-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .recommendation {
+            background: #dcfce7;
+            border: 1px solid #22c55e;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            color: #166534;
+        }
+
+        .recommendation-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            color: #92400e;
+        }
+
+        .warning-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SVG Definitions -->
+    <div style="display: none;">
+        <svg>
+            <symbol id="icon-home" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+            </symbol>
+            <symbol id="icon-train" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M12 2c-4.42 0-8 .5-8 4v10.5c0 1.74 1.33 3.17 3 3.45V22h2v-2h10v2h2v-2.05c1.67-.28 3-1.71 3-3.45V6c0-3.5-3.58-4-8-4zM6 9h5v2H6V9zm6 0h5v2h-5V9zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+            </symbol>
+            <symbol id="icon-subway" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M17.8,2.8C16,2.5,13.8,2.4,12,2.4s-4,0.1-5.8,0.4C3.4,3.4,2,6,2,11v4c0,2.5,1.9,4.5,4.4,4.9L5,22h2l1.3-2h7.4L17,22h2l-1.4-2.1c2.5-0.4,4.4-2.4,4.4-4.9v-4C22,6,20.6,3.4,17.8,2.8z M7,14c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S8.1,14,7,14z M17,14c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S18.1,14,17,14z" />
+            </symbol>
+            <symbol id="icon-bus" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M12,2L12,2C8,2,4,2.5,4,6v9.5c0,1.7,1.3,3.2,3,3.5V22h2v-2h6v2h2v-3c1.7-0.3,3-1.8,3-3.5V6C20,2.5,16,2,12,2z M7.5,16C6.7,16,6,15.3,6,14.5S6.7,13,7.5,13S9,13.7,9,14.5S8.3,16,7.5,16z M16.5,16c-0.8,0-1.5-0.7-1.5-1.5s0.7-1.5,1.5-1.5s1.5,0.7,1.5,1.5S17.3,16,16.5,16z M18,11H6V6h12V11z" />
+            </symbol>
+            <symbol id="icon-car" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33,16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z" />
+            </symbol>
+            <symbol id="icon-walk" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8.4 2.1 2V23h2v-6.8l-1.8-3.7c-.3-.6-1-1-1.7-1-.3 0-.6.1-.8.2L8.2 7.1C7.8 6.5 7.2 6 6.5 6 5.5 6 4.6 6.6 4.1 7.5L3 9.4l1.8 1 1.2-2 1.4 2.5.1-.2z" />
+            </symbol>
+            <symbol id="icon-clock" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                <path fill="currentColor" d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
+            </symbol>
+            <symbol id="icon-building" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M12,7V3H2v18h20V7H12z M6,19H4v-2h2V19z M6,15H4v-2h2V15z M6,11H4V9h2V11z M6,7H4V5h2V7z M10,19H8v-2h2V19z M10,15H8v-2h2V15z M10,11H8V9h2V11z M10,7H8V5h2V7z M20,19h-2v-2h2V19z M20,15h-2v-2h2V15z M20,11h-2V9h2V11z" />
+            </symbol>
+            <symbol id="icon-flag" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z" />
+            </symbol>
+            <symbol id="icon-plane" viewBox="0 0 24 24">
+                <path fill="currentColor"
+                    d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" />
+            </symbol>
+            <symbol id="icon-star" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+            </symbol>
+            <symbol id="icon-alert" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </symbol>
+        </svg>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🚄 出行方案时间规划</h1>
+            <div class="subtitle">目标：2月14日 12:00 到达大同御馨园</div>
+        </header>
+
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-title">📊 行程概览</div>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-label">出发地点</div>
+                    <div class="summary-value">北京房山区长景新园</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">目标地点</div>
+                    <div class="summary-value">大同御馨园</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">出发日期</div>
+                    <div class="summary-value">2月14日（明天）</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">目标时间</div>
+                    <div class="summary-value">12:00 到达</div>
+                </div>
+            </div>
+            <div class="recommendation">
+                <div class="recommendation-title">
+                    <svg style="width:20px;height:20px;fill:currentColor"><use href="#icon-star"></use></svg>
+                    💡 推荐方案：G2533次高铁
+                </div>
+                08:00从长景新园出发 → 12:00准时到达御馨园，时间紧凑但可行
+            </div>
+        </div>
+
+        <section>
+            <div class="section-title">
+                📈 方案对比
+            </div>
+            <div class="section-desc">点击各方案时间轴查看详细信息，鼠标悬停查看详情</div>
+
+            <div class="chart-container" id="chart-root">
+            </div>
+
+            <div class="legend-area">
+                <div class="legend-item">
+                    <div class="legend-box" style="background: var(--color-blue)"></div>
+                    <span>打车 - 长景新园→北京西站</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: var(--color-green)"></div>
+                    <span>高铁 - 北京西站→大同南站</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: var(--color-purple)"></div>
+                    <span>打车 - 大同南站→御馨园</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background: var(--color-grey); border:1px solid #ccc"></div>
+                    <span>候车等待</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Detailed Plans -->
+        <section style="margin-top: 32px;">
+            <div class="section-title">📋 详细行程说明</div>
+
+            <div style="display: grid; gap: 16px; margin-top: 16px;">
+                <!-- Plan 1: Recommended -->
+                <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="background: #22c55e; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 700;">推荐方案</div>
+                        <h3 style="margin: 0; font-size: 16px;">G2533次高铁</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #64748b;">⏰ 总时长：4小时</div>
+                        <div style="font-size: 13px; color: #64748b;">💰 预估费用：¥200-280</div>
+                        <div style="font-size: 13px; color: #64748b;">🎯 准时到达</div>
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #22c55e; font-weight: 700;">08:00</span>
+                            <span>从长景新园出发（打车）</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 60分钟（含10分钟缓冲）</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #3b82f6; font-weight: 700;">09:00</span>
+                            <span>到达北京西站</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 候车30分钟（最少要求）</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #22c55e; font-weight: 700;">09:30</span>
+                            <span style="background: #dcfce7; padding: 2px 8px; border-radius: 4px;">🚄 G2533次高铁发车</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 车程约1小时46分</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #a855f7; font-weight: 700;">11:16</span>
+                            <span>到达大同南站</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 打车44分钟（含缓冲）</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #16a34a; font-weight: 700; font-size: 16px;">12:00</span>
+                            <span style="color: #16a34a; font-weight: 700;">✅ 准时到达御馨园</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plan 2: Earlier Arrival -->
+                <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div style="background: #64748b; color: white; padding: 4px 12px; border-radius: 20px; font-weight: 700;">提前到达</div>
+                        <h3 style="margin: 0; font-size: 16px;">G2531次高铁（时间更充裕）</h3>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; color: #64748b;">⏰ 总时长：4小时16分</div>
+                        <div style="font-size: 13px; color: #64748b;">💰 预估费用：¥200-280</div>
+                        <div style="font-size: 13px; color: #64748b;">🎯 提前54分钟</div>
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.8;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #22c55e; font-weight: 700;">06:50</span>
+                            <span>从长景新园出发（打车）</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 60分钟</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #3b82f6; font-weight: 700;">07:50</span>
+                            <span>到达北京西站</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 候车30分钟</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #22c55e; font-weight: 700;">08:20</span>
+                            <span style="background: #dcfce7; padding: 2px 8px; border-radius: 4px;">🚄 G2531次高铁发车</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 车程约1小时46分</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #a855f7; font-weight: 700;">10:06</span>
+                            <span>到达大同南站</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; color: #64748b;">
+                            <span>↓ 打车30分钟</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #16a34a; font-weight: 700;">11:06</span>
+                            <span>✅ 到达御馨园（提前54分钟）</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tips -->
+        <section style="margin-top: 32px;">
+            <div class="section-title">💡 温馨提示</div>
+            <div style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 20px; margin-top: 16px;">
+                <ul style="margin: 0; padding-left: 20px; line-height: 2;">
+                    <li><strong>推荐选择G2533次高铁</strong>，09:30发车，刚好12:00到达</li>
+                    <li>如果担心堵车，可选择G2531次（08:20发车），提前54分钟到达</li>
+                    <li>从长景新园到北京西站约50分钟车程，建议打车出行</li>
+                    <li>高峰期可能会堵车，建议预留10分钟缓冲时间</li>
+                    <li>高铁需提前30分钟到达车站候车</li>
+                    <li>大同南站到御馨园约20-30分钟车程</li>
+                    <li>建议提前在12306官网或APP购票，确认具体车次和时间</li>
+                    <li>携带身份证原件，高铁进站需要</li>
+                    <li>表格中的出发时间按最少候车时间计算，如需更充裕可提前10-15分钟出发</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Calculation Logic -->
+        <section style="margin-top: 32px;">
+            <div class="section-title">📐 计算逻辑说明</div>
+            <div style="background: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 20px; margin-top: 16px;">
+                <div style="font-size: 14px; line-height: 2;">
+                    <p><strong>目标：</strong>明天下午12:00到达大同御馨园</p>
+                    <p><strong>小交通时间：</strong></p>
+                    <ul style="padding-left: 20px;">
+                        <li>长景新园 → 北京西站：60分钟（含10分钟缓冲）</li>
+                        <li>大同南站 → 御馨园：30-44分钟（含10分钟缓冲）</li>
+                    </ul>
+                    <p><strong>可选高铁班次：</strong></p>
+                    <ul style="padding-left: 20px;">
+                        <li>G2529：07:34发车 → 09:28到达（太早）</li>
+                        <li>G2531：08:20发车 → 10:06到达（推荐，提前54分钟）</li>
+                        <li>G2533：09:30发车 → 11:16到达（推荐，准时到达）</li>
+                        <li>D1127：10:25发车 → 12:19到达（超时，不可选）</li>
+                    </ul>
+                    <p><strong>推荐方案G2533：</strong>09:30发车，11:16到达大同南，12:00到达御馨园，时间紧凑但可行</p>
+                    <p><strong>备选方案G2531：</strong>08:20发车，10:06到达大同南，11:06到达御馨园，提前54分钟，时间更充裕</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        const TRAVEL_DATA = {
+            "code": 200,
+            "message": "Success",
+            "data": {
+                "plans": [
+                    {
+                        "plan_id": "plan_1",
+                        "title": "推荐方案：G2533次高铁",
+                        "tags": ["准时到达", "时间紧凑"],
+                        "summary": {
+                            "total_duration_minutes": 240,
+                            "total_cost": 240,
+                            "departure_time": "2026-02-14T08:00:00",
+                            "arrival_time": "2026-02-14T12:00:00"
+                        },
+                        "segments": [
+                            {
+                                "segment_id": "p1_s1",
+                                "type": "transit",
+                                "description": "长景新园 - 北京西站",
+                                "start_time": "2026-02-14T08:00:00",
+                                "end_time": "2026-02-14T09:00:00",
+                                "duration_minutes": 60,
+                                "location": {
+                                    "start": "长景新园",
+                                    "end": "北京西站"
+                                },
+                                "transport_detail": {
+                                    "mode": "taxi"
+                                }
+                            },
+                            {
+                                "segment_id": "p1_s2",
+                                "type": "wait",
+                                "description": "安检候车",
+                                "start_time": "2026-02-14T09:00:00",
+                                "end_time": "2026-02-14T09:30:00",
+                                "duration_minutes": 30,
+                                "location": {
+                                    "start": "北京西站",
+                                    "end": "北京西站"
+                                }
+                            },
+                            {
+                                "segment_id": "p1_s3",
+                                "type": "transit",
+                                "description": "G2533 北京西 - 大同南",
+                                "start_time": "2026-02-14T09:30:00",
+                                "end_time": "2026-02-14T11:16:00",
+                                "duration_minutes": 106,
+                                "location": {
+                                    "start": "北京西站",
+                                    "end": "大同南站"
+                                },
+                                "transport_detail": {
+                                    "mode": "train",
+                                    "identifier": "G2533"
+                                }
+                            },
+                            {
+                                "segment_id": "p1_s4",
+                                "type": "transit",
+                                "description": "大同南站 - 御馨园",
+                                "start_time": "2026-02-14T11:16:00",
+                                "end_time": "2026-02-14T12:00:00",
+                                "duration_minutes": 44,
+                                "location": {
+                                    "start": "大同南站",
+                                    "end": "御馨园"
+                                },
+                                "transport_detail": {
+                                    "mode": "taxi"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "plan_id": "plan_2",
+                        "title": "提前到达：G2531次高铁",
+                        "tags": ["提前54分钟", "时间充裕"],
+                        "summary": {
+                            "total_duration_minutes": 256,
+                            "total_cost": 240,
+                            "departure_time": "2026-02-14T06:50:00",
+                            "arrival_time": "2026-02-14T11:06:00"
+                        },
+                        "segments": [
+                            {
+                                "segment_id": "p2_s1",
+                                "type": "transit",
+                                "description": "长景新园 - 北京西站",
+                                "start_time": "2026-02-14T06:50:00",
+                                "end_time": "2026-02-14T07:50:00",
+                                "duration_minutes": 60,
+                                "location": {
+                                    "start": "长景新园",
+                                    "end": "北京西站"
+                                },
+                                "transport_detail": {
+                                    "mode": "taxi"
+                                }
+                            },
+                            {
+                                "segment_id": "p2_s2",
+                                "type": "wait",
+                                "description": "安检候车",
+                                "start_time": "2026-02-14T07:50:00",
+                                "end_time": "2026-02-14T08:20:00",
+                                "duration_minutes": 30,
+                                "location": {
+                                    "start": "北京西站",
+                                    "end": "北京西站"
+                                }
+                            },
+                            {
+                                "segment_id": "p2_s3",
+                                "type": "transit",
+                                "description": "G2531 北京西 - 大同南",
+                                "start_time": "2026-02-14T08:20:00",
+                                "end_time": "2026-02-14T10:06:00",
+                                "duration_minutes": 106,
+                                "location": {
+                                    "start": "北京西站",
+                                    "end": "大同南站"
+                                },
+                                "transport_detail": {
+                                    "mode": "train",
+                                    "identifier": "G2531"
+                                }
+                            },
+                            {
+                                "segment_id": "p2_s4",
+                                "type": "transit",
+                                "description": "大同南站 - 御馨园",
+                                "start_time": "2026-02-14T10:06:00",
+                                "end_time": "2026-02-14T11:06:00",
+                                "duration_minutes": 60,
+                                "location": {
+                                    "start": "大同南站",
+                                    "end": "御馨园"
+                                },
+                                "transport_detail": {
+                                    "mode": "taxi"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        const CONFIG = {
+            colors: {
+                leg1: 'var(--color-blue)',
+                leg2: 'var(--color-green)',
+                leg3: 'var(--color-purple)'
+            }
+        };
+
+        function getSegmentColor(seg, index) {
+            if (seg.type === 'wait') return 'var(--color-grey)';
+            return seg.legColor || '#ccc';
+        }
+
+        function getIconForMode(mode, locationName) {
+            const map = {
+                'train': 'icon-train',
+                'subway': 'icon-subway',
+                'bus': 'icon-bus',
+                'taxi': 'icon-car',
+                'walk': 'icon-walk',
+                'plane': 'icon-plane',
+                'wait': 'icon-clock'
+            };
+            return map[mode] || 'icon-clock';
+        }
+
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        window.renderSchedule = function (dataPayload) {
+            let plans = [];
+            if (dataPayload.data && Array.isArray(dataPayload.data.plans)) {
+                plans = dataPayload.data.plans;
+            } else if (dataPayload.plans && Array.isArray(dataPayload.plans)) {
+                plans = dataPayload.plans;
+            } else if (Array.isArray(dataPayload)) {
+                plans = dataPayload;
+            } else {
+                console.error("Invalid data format passed to renderSchedule", dataPayload);
+                return;
+            }
+
+            const root = document.getElementById('chart-root');
+            root.innerHTML = '';
+
+            if (plans.length === 0) {
+                root.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">暂无行程数据</div>';
+                return;
+            }
+
+            // Calculate time range
+            let minTime = Number.MAX_VALUE;
+            let maxTime = 0;
+
+            plans.forEach(plan => {
+                plan.segments.forEach(seg => {
+                    const s = new Date(seg.start_time).getTime();
+                    const e = new Date(seg.end_time).getTime();
+                    if (s < minTime) minTime = s;
+                    if (e > maxTime) maxTime = e;
+                });
+            });
+
+            minTime -= 15 * 60 * 1000;
+            maxTime += 15 * 60 * 1000;
+            const gridStep = 15 * 60 * 1000;
+            minTime = Math.floor(minTime / gridStep) * gridStep;
+            maxTime = Math.ceil(maxTime / gridStep) * gridStep;
+            const totalDuration = maxTime - minTime;
+
+            // Render header
+            const header = document.createElement('div');
+            header.className = 'timeline-header';
+            for (let t = minTime; t <= maxTime; t += gridStep) {
+                const date = new Date(t);
+                const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const mark = document.createElement('div');
+                mark.className = 'time-mark';
+                mark.innerText = timeStr;
+                mark.style.left = `${((t - minTime) / totalDuration) * 100}%`;
+                header.appendChild(mark);
+            }
+            root.appendChild(header);
+
+            // Render plans
+            plans.forEach((plan, planIndex) => {
+                const row = document.createElement('div');
+                row.className = 'plan-row';
+
+                // Info card
+                const card = document.createElement('div');
+                card.className = 'plan-info-card';
+
+                const startStr = formatTime(plan.summary.departure_time);
+                const endStr = formatTime(plan.summary.arrival_time);
+                const duration = plan.summary.total_duration_minutes;
+                const cost = plan.summary.total_cost;
+                const tags = plan.tags || [];
+
+                card.innerHTML = `
+                    <div class="plan-title">${plan.title}</div>
+                    <div class="plan-metric">
+                        ${duration}分钟 | ${startStr}→${endStr} | ¥${cost}
+                    </div>
+                    <div class="tags-container">
+                        ${tags.map(t => `<div class="plan-tag">${t}</div>`).join('')}
+                    </div>
+                `;
+                row.appendChild(card);
+
+                // Timeline track
+                const track = document.createElement('div');
+                track.className = 'timeline-track';
+
+                let transitLegCount = 0;
+
+                plan.segments.forEach((seg, index) => {
+                    const s = new Date(seg.start_time).getTime();
+                    const e = new Date(seg.end_time).getTime();
+                    const duration = seg.duration_minutes;
+                    const isLast = index === plan.segments.length - 1;
+
+                    if (seg.type === 'transit') {
+                        transitLegCount++;
+                        if (transitLegCount === 1) seg.legColor = CONFIG.colors.leg1;
+                        else if (transitLegCount === 2) seg.legColor = CONFIG.colors.leg2;
+                        else seg.legColor = CONFIG.colors.leg3;
+                    }
+
+                    const el = document.createElement('div');
+                    el.className = `segment type-${seg.type}`;
+                    const left = ((s - minTime) / totalDuration) * 100;
+                    const width = ((e - s) / totalDuration) * 100;
+
+                    el.style.left = `${left}%`;
+                    el.style.width = `calc(${width}% - 1px)`;
+                    el.style.backgroundColor = getSegmentColor(seg);
+
+                    const iconId = getIconForMode(seg.transport_detail?.mode || 'wait');
+                    el.innerHTML = `
+                        <div class="segment-content">
+                            <svg class="segment-icon"><use href="#${iconId}"></use></svg>
+                            ${duration}m
+                        </div>
+                    `;
+
+                    el.addEventListener('mousemove', (ev) => showTooltip(ev, seg));
+                    el.addEventListener('mouseleave', hideTooltip);
+
+                    track.appendChild(el);
+
+                    // Node labels
+                    const sTimeStr = formatTime(seg.start_time);
+                    const eTimeStr = formatTime(seg.end_time);
+
+                    // Start node
+                    if (index === 0) {
+                        const node = document.createElement('div');
+                        node.className = 'node-label-group';
+                        node.style.left = `${left}%`;
+                        node.innerHTML = `
+                            <div class="node-time text-red">${sTimeStr} 出发</div>
+                            <div class="node-location">
+                                <span>${seg.location.start}</span>
+                            </div>
+                        `;
+                        track.appendChild(node);
+                    }
+
+                    // Train departure node
+                    if (seg.transport_detail?.mode === 'train') {
+                        const node = document.createElement('div');
+                        node.className = 'node-label-group';
+                        node.style.left = `${left}%`;
+                        let locName = seg.location.start.replace('站', '');
+
+                        node.innerHTML = `
+                            <div class="node-time" style="color:var(--color-blue)">${sTimeStr} ${seg.transport_detail.identifier}发车</div>
+                            <div class="node-location">
+                                <span>${locName}</span>
+                            </div>
+                        `;
+                        track.appendChild(node);
+                    }
+
+                    // End node
+                    if (isLast) {
+                        const node = document.createElement('div');
+                        node.className = 'node-label-group end-node';
+                        node.style.left = `${((e - minTime) / totalDuration) * 100}%`;
+                        node.innerHTML = `
+                            <div class="node-time">${eTimeStr} 到达</div>
+                            <div class="node-location">
+                                <span>${seg.location.end}</span>
+                            </div>
+                        `;
+                        track.appendChild(node);
+                    } else if (seg.transport_detail?.mode === 'train') {
+                        const node = document.createElement('div');
+                        node.className = 'node-label-group';
+                        node.style.left = `${((e - minTime) / totalDuration) * 100}%`;
+                        let locName = seg.location.end.replace('站', '');
+
+                        node.innerHTML = `
+                            <div class="node-time" style="color:var(--color-blue)">${eTimeStr} 到站</div>
+                            <div class="node-location">
+                                <span>${locName}</span>
+                            </div>
+                        `;
+                        track.appendChild(node);
+                    }
+                });
+
+                row.appendChild(track);
+                root.appendChild(row);
+            });
+        };
+
+        function showTooltip(e, seg) {
+            const tooltip = document.getElementById('tooltip');
+            const startTime = formatTime(seg.start_time);
+            const endTime = formatTime(seg.end_time);
+
+            tooltip.innerHTML = `
+                <strong>${seg.description}</strong><br>
+                ⏰ ${startTime} - ${endTime} (${seg.duration_minutes}分钟)<br>
+                📍 ${seg.location.start} → ${seg.location.end}<br>
+                ${seg.transport_detail?.identifier ? `🚄 ${seg.transport_detail.identifier}` : ''}
+            `;
+            tooltip.style.opacity = 1;
+            tooltip.style.left = (e.pageX + 10) + 'px';
+            tooltip.style.top = (e.pageY + 10) + 'px';
+        }
+
+        function hideTooltip() {
+            document.getElementById('tooltip').style.opacity = 0;
+        }
+
+        function init() {
+            if (window.EXTERNAL_DATA) {
+                console.log("Initializing with EXTERNAL_DATA");
+                renderSchedule(window.EXTERNAL_DATA);
+            } else if (typeof TRAVEL_DATA !== 'undefined') {
+                console.log("Initializing with TRAVEL_DATA");
+                renderSchedule(TRAVEL_DATA);
+            }
+
+            window.addEventListener('message', (event) => {
+                const message = event.data;
+                if (message && message.type === 'UPDATE_SCHEDULE' && message.payload) {
+                    console.log("Received UPDATE_SCHEDULE message");
+                    renderSchedule(message.payload);
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>

@@ -143,7 +143,7 @@ type CoworkConfigUpdate = Partial<Pick<
   | 'clawServerUrl'
 >>;
 
-type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui';
+type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui' | 'moma_cli';
 
 interface CliAppConfigSnapshot {
   appType: CliAppType;
@@ -157,7 +157,7 @@ interface CliAppConfigSnapshot {
 }
 
 interface CliCommandStatus {
-  engine: Extract<CoworkAgentEngine, 'openclaw' | 'claude_code' | 'codex' | 'hermes' | 'opencode' | 'grok_build' | 'qwen_code' | 'deepseek_tui'>;
+  engine: Extract<CoworkAgentEngine, 'openclaw' | 'claude_code' | 'codex' | 'hermes' | 'opencode' | 'grok_build' | 'qwen_code' | 'deepseek_tui' | 'moma_cli'>;
   appType: CliAppType;
   command: string;
   found: boolean;

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066cc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  
+  <rect width="1280" height="720" fill="url(#bgGradient)" />
+  
+  
+  <rect x="0" y="0" width="1280" height="80" fill="#1e3a5f" />
+  <text x="60" y="52" font-family="Microsoft YaHei, Arial, sans-serif" font-size="24" fill="#ffffff">多模态 AI 应用</text>
+  
+  
+  <text x="640" y="150" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="36" font-weight="bold" fill="#1e3a5f">
+    多模态融合的技术突破
+  </text>
+  
+  
+  <circle cx="640" cy="340" r="120" fill="url(#blueGradient)" opacity="0.1" />
+  <circle cx="640" cy="340" r="80" fill="url(#blueGradient)" opacity="0.2" />
+  <circle cx="640" cy="340" r="40" fill="url(#blueGradient)" />
+  
+  
+  <g transform="translate(280, 220)">
+    <path fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))" d="M12,0 H168 A12,12 0 0 1 180,12 V88 A12,12 0 0 1 168,100 H12 A12,12 0 0 1 0,88 V12 A12,12 0 0 1 12,0 Z" />
+    <text x="90" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="#1e3a5f">📝</text>
+    <text x="90" y="75" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e3a5f">文本处理</text>
+  </g>
+  
+  <g transform="translate(820, 220)">
+    <path fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))" d="M12,0 H168 A12,12 0 0 1 180,12 V88 A12,12 0 0 1 168,100 H12 A12,12 0 0 1 0,88 V12 A12,12 0 0 1 12,0 Z" />
+    <text x="90" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="#1e3a5f">🖼️</text>
+    <text x="90" y="75" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e3a5f">图像理解</text>
+  </g>
+  
+  <g transform="translate(280, 460)">
+    <path fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))" d="M12,0 H168 A12,12 0 0 1 180,12 V88 A12,12 0 0 1 168,100 H12 A12,12 0 0 1 0,88 V12 A12,12 0 0 1 12,0 Z" />
+    <text x="90" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="#1e3a5f">🎵</text>
+    <text x="90" y="75" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e3a5f">音频分析</text>
+  </g>
+  
+  <g transform="translate(820, 460)">
+    <path fill="#ffffff" filter="drop-shadow(0 4px 12px rgba(0,0,0,0.15))" d="M12,0 H168 A12,12 0 0 1 180,12 V88 A12,12 0 0 1 168,100 H12 A12,12 0 0 1 0,88 V12 A12,12 0 0 1 12,0 Z" />
+    <text x="90" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" fill="#1e3a5f">🎥</text>
+    <text x="90" y="75" text-anchor="middle" font-family="Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="bold" fill="#1e3a5f">视频理解</text>
+  </g>
+  
+  
+  <g stroke="url(#blueGradient)" stroke-width="2" opacity="0.6">
+    <line x1="370" y1="270" x2="560" y2="310" />
+    <line x1="910" y1="270" x2="720" y2="310" />
+    <line x1="370" y1="490" x2="560" y2="370" />
+    <line x1="910" y1="490" x2="720" y2="370" />
+  </g>
+  
+  
+  <g transform="translate(340, 620)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="16" fill="#64748b" text-anchor="middle">
+      多模态模型准确率提升
+    </text>
+    <text x="200" y="0" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#0066cc" text-anchor="middle">
+      +65%
+    </text>
+  </g>
+  
+  
+  <text x="1220" y="700" text-anchor="end" font-family="Arial, sans-serif" font-size="14" fill="#94a3b8">6 / 10</text>
+</svg>

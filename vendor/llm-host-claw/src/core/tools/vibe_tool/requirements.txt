@@ -1,0 +1,2 @@
+# vibe_tool 依赖
+agno>=2.0.0

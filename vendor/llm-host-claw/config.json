@@ -1,0 +1,121 @@
+{
+  "model": {
+    "id": "gpt-5.4",
+    "provider": "openai",
+    "base_url": "https://www.cctq.ai/v1",
+    "api_key": "YOUR_API_KEY"
+  },
+  "toolkits": [
+    {
+      "target": "core.tools.assign_task.AssignTaskTools",
+      "unauthorize_tools": [
+        "write_todo",
+        "update_todo",
+        "modify_todo",
+        "create_subagent",
+        "assign_task",
+        "publish_artifact"
+      ],
+      "model": {
+        "id": "gpt-5.4",
+        "provider": "openai",
+        "base_url": "https://www.cctq.ai/v1",
+        "api_key": "YOUR_API_KEY"
+      }
+    },
+    {
+      "target": "core.tools.shell.Shell",
+      "max_output": 20000,
+      "blocked_commands": [
+        "rm -rf /",
+        "shutdown",
+        "reboot",
+        ":(){:|:&};:"
+      ]
+    },
+    {
+      "target": "core.tools.amap_tools.AmapTools",
+      "timeout": 50
+    },
+    {
+      "target": "core.tools.create_subagent.CreateSubagentTools"
+    },
+    {
+      "target": "core.tools.web_tool.WebTool",
+      "model": {
+        "id": "gpt-5.4",
+        "provider": "openai",
+        "base_url": "https://www.cctq.ai/v1",
+        "api_key": "YOUR_API_KEY"
+      },
+      "add_external_tools": true,
+      "tool_call_limit": 7,
+      "add_skill": true
+    },
+    {
+      "target": "core.tools.jt_tools.JtTools",
+      "timeout": 50,
+      "source_type": "plugin",
+      "summarize": false,
+      "query_type_code_search": "1-2",
+      "query_type_code_weather": "1-1",
+      "query_type_code_date": "1-6",
+      "sourceType": "klbase",
+      "chatType": 2,
+      "modelId_t2i": "cntxt2image",
+      "modelId_i2t": "LLMImage2Text",
+      "modelId_video": "video_to_text",
+      "query_type_code_searchPicture": "1-8",
+      "modelId_searchPicture": "qwen3-next-80b",
+      "max_url_cnt": 10,
+      "time_filter": 10
+    },
+    {
+      "target": "core.tools.publish_artifact.PublishArtifactTools"
+    },
+    {
+      "target": "core.tools.vibe_tool.vibe_toolkit.VibeCodingToolkit",
+      "agent_type": "opencode"
+    },
+    {
+      "target": "core.tools.todo_tool.TodoTools",
+      "model": {
+        "id": "gpt-5.4",
+        "provider": "openai",
+        "base_url": "https://www.cctq.ai/v1",
+        "api_key": "YOUR_API_KEY"
+      }
+    },
+    {
+      "target": "core.tools.browser_tool.browser_toolkit.BrowserUseToolkit",
+      "model": [
+        "gpt-5.4"
+      ],
+      "inner_model": [
+        "gpt-5.4"
+      ],
+      "base_url": "https://www.cctq.ai/v1",
+      "api_key": "YOUR_API_KEY",
+      "headless": true,
+      "keep_alive": true,
+      "max_steps": 20,
+      "max_actions_per_step": 10,
+      "step_timeout": 90,
+      "llm_timeout": 120,
+      "use_vision": true,
+      "use_thinking": false,
+      "directly_open_url": true,
+      "final_response_after_failure": true
+    }
+  ],
+  "mcpServers": {
+    "bing-cn-mcp-server": {
+      "type": "sse",
+      "url": "https://mcp.api-inference.modelscope.net/3fa0a1614bf142/sse"
+    },
+    "12306-mcp": {
+      "type": "sse",
+      "url": "https://mcp.api-inference.modelscope.net/c1fb3a0d593946/sse"
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "skill_name": "web-reader",
+  "description": "Advanced web scraping with anti-bot detection evasion",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Extract the title and all product prices from https://example.com using the web-reader skill. Extract the main heading as 'title' and any price elements as 'prices'.",
+      "expected_output": "JSON output with url, title, fields containing extracted data, and metadata showing stealth was used",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Use the web-reader skill to scrape a news article from a news website. Extract the headline, publication date, and article body. Enable stealth mode to avoid bot detection.",
+      "expected_output": "Extracted headline, date, and body text in structured JSON format",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Write a Python script using the web-reader skill that extracts all job listings from a job board website, including job title, company name, salary range, and job description. Use CSS selectors to extract each field.",
+      "expected_output": "Working Python script with WebReader class that extracts structured job data",
+      "files": []
+    }
+  ],
+  "assertions": [
+    {
+      "eval_id": 1,
+      "assertions": [
+        {
+          "name": "has_url",
+          "description": "Output contains the input URL",
+          "check": "jsonpath",
+          "path": "$.url",
+          "expected": "https://example.com"
+        },
+        {
+          "name": "has_title",
+          "description": "Output contains extracted title",
+          "check": "exists",
+          "path": "$.title"
+        },
+        {
+          "name": "has_fields",
+          "description": "Output contains extracted fields",
+          "check": "exists",
+          "path": "$.fields"
+        },
+        {
+          "name": "has_metadata",
+          "description": "Output contains metadata",
+          "check": "exists",
+          "path": "$.metadata"
+        },
+        {
+          "name": "is_json",
+          "description": "Output is valid JSON",
+          "check": "is_valid_json"
+        }
+      ]
+    },
+    {
+      "eval_id": 2,
+      "assertions": [
+        {
+          "name": "has_headline",
+          "description": "Extracted headline exists",
+          "check": "exists",
+          "path": "$.fields.headline"
+        },
+        {
+          "name": "has_body",
+          "description": "Article body extracted",
+          "check": "exists",
+          "path": "$.text"
+        },
+        {
+          "name": "stealth_enabled",
+          "description": "Stealth mode was used",
+          "check": "jsonpath",
+          "path": "$.metadata.stealth_used",
+          "expected": true
+        }
+      ]
+    },
+    {
+      "eval_id": 3,
+      "assertions": [
+        {
+          "name": "has_script",
+          "description": "Python script was created",
+          "check": "has_file",
+          "pattern": "*.py"
+        },
+        {
+          "name": "uses_webreader",
+          "description": "Script uses WebReader class",
+          "check": "file_contains",
+          "pattern": "WebReader"
+        },
+        {
+          "name": "has_selectors",
+          "description": "Script contains CSS selectors",
+          "check": "file_contains",
+          "pattern": "selector"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+    "PORT": 3459,
+    "LOG": true,
+    "LOG_LEVEL": "trace",
+    "Providers": [
+        {
+            "name": "jiutian",
+            "api_base_url": "${JIUTIAN_BASE_URL}",
+            "api_key": "${JIUTIAN_API_KEY}",
+            "models": "${JIUTIAN_MODELS}",
+            "transformer": {
+                "use": [
+                    "openrouter"
+                ]
+            }
+        }
+    ],
+    "Router": {
+        "default": "${ROUTER_DEFAULT}",
+        "longContextThreshold": 160000
+    }
+}

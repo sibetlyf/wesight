@@ -15,12 +15,12 @@ export const CoworkAgentEngine = {
   GrokBuild: 'grok_build',
   QwenCode: 'qwen_code',
   DeepSeekTui: 'deepseek_tui',
-  ClawRuntime: 'claw_runtime',
+  ClawRuntime: 'moma_cli',
 } as const;
 
 export type CoworkAgentEngine = typeof CoworkAgentEngine[keyof typeof CoworkAgentEngine];
 
-export const DefaultCoworkAgentEngine = CoworkAgentEngine.ClaudeCode;
+export const DefaultCoworkAgentEngine = CoworkAgentEngine.ClawRuntime;
 
 export const CoworkAgentEngineValues = [
   CoworkAgentEngine.YdCowork,

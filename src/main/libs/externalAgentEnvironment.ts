@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { spawnSync } from 'child_process';
+import { app } from 'electron';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -24,7 +25,7 @@ import {
 } from './hermesConfig';
 import { readOpenClawGlobalConfig, summarizeOpenClawConfig } from './openclawSystemRuntime';
 
-export type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui';
+export type CliAppType = 'claude' | 'codex' | 'hermes' | 'openclaw' | 'opencode' | 'grok' | 'qwen' | 'deepseek_tui' | 'moma_cli';
 
 export interface CliAppConfigSnapshot {
   appType: CliAppType;
@@ -431,10 +432,12 @@ const getWindowsSearchPaths = (command: string): string[] => {
       ...registryCandidates,
     ];
   }
-  if (command === 'deepseek-tui') {
+  if (command === 'moma') {
     return [
       ...(customNpmPath ? [customNpmPath] : []),
-      path.join(appData, 'npm', 'deepseek-tui.cmd'),
+      path.join(appData, 'npm', 'moma.cmd'),
+      path.join(home, '.local', 'bin', 'moma.exe'),
+      path.join(home, 'moma.exe'),
       ...registryCandidates,
     ];
   }
@@ -458,6 +461,27 @@ const buildWindowsCommandShimArgs = (commandPath: string, args: string[]): strin
 };
 
 const resolveCommand = (command: string): { found: boolean; path: string | null; error: string | null } => {
+  if (command === 'moma') {
+    const isWindows = process.platform === 'win32';
+    const userDataPath = app.getPath('userData');
+    const targetPython = isWindows
+      ? path.join(userDataPath, 'runtimes', 'llm-host-claw', '.venv', 'Scripts', 'python.exe')
+      : path.join(userDataPath, 'runtimes', 'llm-host-claw', '.venv', 'bin', 'python');
+
+    if (fs.existsSync(targetPython)) {
+      return { found: true, path: targetPython, error: null };
+    }
+
+    // Fallback: development workspace
+    const devDir = 'G:\\MOMA\\moma_cli\\llm-host-claw';
+    const devPython = isWindows
+      ? path.join(devDir, '.venv', 'Scripts', 'python.exe')
+      : path.join(devDir, '.venv', 'bin', 'python');
+    if (fs.existsSync(devPython)) {
+      return { found: true, path: devPython, error: null };
+    }
+  }
+
   if (process.platform === 'win32') {
     for (const candidate of getWindowsSearchPaths(command)) {
       if (candidate && fs.existsSync(candidate)) {
@@ -550,7 +574,9 @@ const buildCliConfigSnapshot = (
       : appType === 'grok'
         ? getGrokBuildConfigDir()
         : appType === 'qwen'
-          ? getQwenCodeConfigDir()
+        ? getQwenCodeConfigDir()
+        : appType === 'moma_cli'
+          ? path.join(homeDir(), '.moma_cli')
           : getDeepSeekTuiConfigDir();
   const primaryConfigPath = appType === 'claude'
     ? resolveClaudeSettingsPath(configDir)
@@ -566,7 +592,9 @@ const buildCliConfigSnapshot = (
         ? path.join(configDir, 'config.toml')
         : appType === 'qwen'
           ? path.join(configDir, 'settings.json')
-          : path.join(configDir, 'config.toml');
+          : appType === 'moma_cli'
+            ? path.join(configDir, 'config.json')
+            : path.join(configDir, 'config.toml');
   const secondaryConfigPaths = appType === 'claude'
     ? [resolveClaudeMcpPath(configDir, Boolean(claudeOverride))]
     : appType === 'codex'
@@ -581,7 +609,9 @@ const buildCliConfigSnapshot = (
         ? [path.join(configDir, 'auth.json')]
         : appType === 'qwen'
           ? [path.join(configDir, 'oauth_creds.json')]
-          : [path.join(configDir, 'sessions')];
+          : appType === 'moma_cli'
+            ? [path.join(configDir, 'config.json')]
+            : [path.join(configDir, 'sessions')];
   const settingsCurrentProviderId = getCurrentProviderSetting(settings, appType);
   if (appType === 'opencode') {
     const summary = readOpenCodeConfigSummary(primaryConfigPath);
@@ -661,6 +691,18 @@ const buildCliConfigSnapshot = (
       providerCount: summary.count,
     };
   }
+  if (appType === 'moma_cli') {
+    return {
+      appType,
+      configDir,
+      primaryConfigPath,
+      secondaryConfigPaths,
+      configExists: fs.existsSync(primaryConfigPath),
+      currentProviderId: 'moma',
+      currentProviderName: 'MOMA',
+      providerCount: 1,
+    };
+  }
   const { provider, count } = readCurrentProviderFromDb(dbPath, appType, settingsCurrentProviderId);
 
   return {
@@ -723,6 +765,7 @@ export function getExternalAgentEnvironmentSnapshot(): ExternalAgentEnvironmentS
       buildCommandStatus(CoworkAgentEngine.GrokBuild, 'grok', 'grok', settings, dbPath),
       buildCommandStatus(CoworkAgentEngine.QwenCode, 'qwen', 'qwen', settings, dbPath),
       buildCommandStatus(CoworkAgentEngine.DeepSeekTui, 'deepseek_tui', 'deepseek-tui', settings, dbPath),
+      buildCommandStatus(CoworkAgentEngine.ClawRuntime, 'moma_cli', 'moma', settings, dbPath),
     ],
   };
 }

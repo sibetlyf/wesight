@@ -1,0 +1,128 @@
+# 协调器模型
+model:
+  id: deepseek-v4-flash
+  base_url: https://example.com/v1
+  api_key: TEST_API_KEY
+  provider: deepseek
+  extra_body:
+    thinking:
+      type: disabled
+# 会话摘要管理器配置。
+# 这里仅切换摘要模型，并注入对应的鉴权信息。
+session_manager:
+  model:
+    id: nemotron-3-super-120b
+    api_key: TEST_SUMMARY_API_KEY
+
+# 工具结果压缩配置。
+compression_manager:
+  model:
+    id: nemotron-3-super-120b
+    api_key: TEST_SUMMARY_API_KEY
+  compress_token_limit: 64000
+
+# 已启用工具列表。
+# 每个元素的 `target` 必须保留，用来匹配具体 toolkit 配置模型。
+toolkits:
+  # assign_task 只覆盖内部 compression_manager。
+  - target: core.tools.assign_task.AssignTaskTools
+    model:
+      id: deepseek-v4-flash
+      base_url: https://example.com/v1
+      api_key: TEST_API_KEY
+      provider: deepseek
+      extra_body:
+        thinking:
+          type: disabled
+    compression_manager:
+      model:
+        id: nemotron-3-super-120b
+        api_key: TEST_SUMMARY_API_KEY
+    compress_token_limit: 64000
+
+  # shell 使用默认配置。
+  - target: core.tools.shell.Shell
+
+  # amap 使用默认配置。
+  - target: core.tools.amap_tools.AmapTools
+
+  # create_subagent 只覆盖默认子模型。
+  - target: core.tools.create_subagent.CreateSubagentTools
+
+  # web_tool 只覆盖执行模型。
+  - target: core.tools.web_tool.WebTool
+    model:
+      id: nemotron-3-super-120b
+      api_key: TEST_SUMMARY_API_KEY
+
+  # jt_tools 仅替换搜图模型。
+  - target: core.tools.jt_tools.JtTools
+    modelId_searchPicture: nemotron-3-super-120b
+
+  # publish_artifact 使用默认配置。
+  - target: core.tools.publish_artifact.PublishArtifactTools
+
+  # vibe toolkit 切换到 opencode 模式。
+  - target: core.tools.vibe_tool.vibe_toolkit.VibeCodingToolkit
+    agent_type: opencode
+
+  - target: core.tools.todo_tool.TodoTools
+    model:
+      id: deepseek-v4-flash
+      base_url: https://example.com/v1
+      api_key: TEST_API_KEY
+      provider: deepseek
+      extra_body:
+        thinking:
+          type: disabled
+        timeout: 60
+    title_agent:
+      model:
+        id: nemotron-3-super-120b
+        api_key: TEST_SUMMARY_API_KEY
+  - target: core.tools.browser_tool.browser_toolkit.BrowserUseToolkit
+    toolkit_name: browser_use
+    toolkit_instructions: 用于调用 browser-use 执行网页浏览、搜索、点击、表单填写与页面信息提取。
+    register_task_tools: true
+    prefer_direct_runner: true
+
+    inner_model:
+      - deepseek-v4-pro
+    base_url: https://example.com/v1
+    api_key: TEST_API_KEY
+
+    headless: false
+    keep_alive: true
+    channel: chromium
+
+    minimum_wait_page_load_time: 1.0
+    wait_for_network_idle_page_load_time: 0.0
+    wait_between_actions: 0.5
+
+    max_steps: 25
+    max_actions_per_step: 3
+    max_failures: 4
+    step_timeout: 120
+    llm_timeout: 120
+    task_timeout_seconds: 300
+
+    use_vision: true
+    flash_mode: false
+    use_thinking: false
+    directly_open_url: true
+    final_response_after_failure: true
+
+    structured_force_json_mode: true
+    structured_output_mode: local_json
+    structured_use_response_format: false
+    structured_normalize_actions: true
+    structured_max_retries: 2
+
+    prefer_run_context_session_id: true
+    retain_last_completed_tasks: 20
+    agent_file_system_dir: D:/workspace/llm-host-claw/runs
+
+    browser_kwargs:
+      args:
+        - --no-sandbox
+        - --disable-setuid-sandbox
